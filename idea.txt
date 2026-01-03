@@ -1,1 +1,13 @@
+a web app that takes in a location via browser geolocation or user input and returns a map showing in a radius areas that drone flying is permitted and restricted
+
+the app will ask to use the user's location or for a location and use the OpenStreetMap Nominatum API to get coordinates
+the app will determine the political juridictions of the location and fetch the GIS APIs needed via web using an AI agent (openrouter)
+the app will use OpenStreetMap to create polygons of permission on a map with canvas rendering for dense urban environments and standard OSM raster tiles for other areas based on the number of parcels
+the app will render the map
+
+TBD
+option to sign in and save the map if the process takes too long
+
+openrouter key: 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
+model: meta-llama/llama-3.3-70b-instruct:free
 

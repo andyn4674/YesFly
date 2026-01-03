@@ -160,7 +160,7 @@ body {
 .submit-location-btn:hover {
   background: #f57c00;
 }
-
+ 
 .submit-location-btn:disabled {
   background: #ccc;
   cursor: not-allowed;

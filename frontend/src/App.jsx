@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import LocationInput from './components/LocationInput'
 import LocationDisplay from './components/LocationDisplay'
+import FlightRestrictions from './components/FlightRestrictions'
 import './App.css'
 
 function App() {
@@ -13,17 +14,18 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
-        <h1>Location Finder</h1>
-        <p>Find your location using GPS or manual input</p>
+        <h1>Drone Flight Restriction Checker</h1>
+        <p>Find your location and check flight restrictions in your area</p>
       </header>
       
       <main className="app-main">
         <LocationInput onLocationChange={handleLocationChange} />
         <LocationDisplay locationData={locationData} />
+        <FlightRestrictions locationData={locationData} radiusMeters={1000} />
       </main>
       
       <footer className="app-footer">
-        <p>Uses OpenStreetMap Nominatim API for geocoding</p>
+        <p>Backend API: Node.js + Express + Turf.js • Frontend: React + Leaflet</p>
       </footer>
     </div>
   )
