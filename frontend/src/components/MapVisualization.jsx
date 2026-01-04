@@ -263,16 +263,6 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
       {/* Summary Statistics */}
       <div className="map-summary">
         <div className="summary-grid">
-          <div className="summary-card">
-            <h4>Search Area</h4>
-            <p className="summary-value">
-              {(() => {
-                const radiusFeet = radiusMeters * 3.28084;
-                const areaSqFeet = Math.PI * Math.pow(radiusFeet, 2);
-                return unitConverter.formatAreaDisplay(areaSqFeet, radiusMeters);
-              })()}
-            </p>
-          </div>
           <div className="summary-card airspace">
             <h4>Restricted Areas</h4>
             <p className="summary-value">{(restrictions.airspaceRestrictions?.features?.length || 0) + (restrictions.localRestrictions?.features?.length || 0)}</p>
@@ -280,25 +270,6 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
           <div className="summary-card allowed">
             <h4>Allowed Areas</h4>
             <p className="summary-value">{restrictions.allowedAreas?.features?.length || 0}</p>
-          </div>
-          <div className="summary-card">
-            <h4>Total Allowed</h4>
-            <p className="summary-value">
-              {(() => {
-                if (restrictions.allowedAreas?.features?.length > 0) {
-                  // Calculate from actual allowed areas
-                  const totalAreaSqMeters = restrictions.allowedAreas.features.reduce((total, feature) => 
-                    total + (feature.properties?.areaSqMeters || 0), 0
-                  );
-                  return unitConverter.formatAreaDisplay(totalAreaSqMeters, radiusMeters);
-                } else {
-                  // If no allowed areas, show search area (entire area is allowed)
-                  const radiusFeet = radiusMeters * 3.28084;
-                  const areaSqFeet = Math.PI * Math.pow(radiusFeet, 2);
-                  return unitConverter.formatAreaDisplay(areaSqFeet, radiusMeters);
-                }
-              })()}
-            </p>
           </div>
         </div>
       </div>

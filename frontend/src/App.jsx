@@ -3,24 +3,25 @@ import LocationInput from './components/LocationInput'
 import LocationDisplay from './components/LocationDisplay'
 import FlightRestrictions from './components/FlightRestrictions'
 import MapVisualization from './components/MapVisualization'
+import RadiusSelector from './components/RadiusSelector'
 import './App.css'
 
 function App() {
   const [locationData, setLocationData] = useState(null)
   const [restrictions, setRestrictions] = useState(null)
-  const [radiusMeters, setRadiusMeters] = useState(1000)
+  const [radiusMeters, setRadiusMeters] = useState(1609.34) // 1 mile in meters
 
   const handleLocationChange = (data) => {
-    console.log('Location changed:', data);
+    console.log('📍 Location changed:', data);
     setLocationData(data)
     setRestrictions(null) // Clear previous restrictions when location changes
     
-    console.log('About to call fetchRestrictions with radius:', radiusMeters);
+    console.log('📞 About to call fetchRestrictions with radius:', radiusMeters);
     
     // Trigger API call for the new location with current radius
     fetchRestrictions(radiusMeters, data);
     
-    console.log('fetchRestrictions called');
+    console.log('✅ fetchRestrictions called');
   }
 
   const handleRadiusChange = (newRadius) => {
@@ -49,6 +50,13 @@ function App() {
 
       console.log('Making API request...');
 
+      console.log('About to make fetch request to:', 'http://localhost:3000/api/restrictions');
+      console.log('Request body:', {
+        lat: locationToUse.coordinates.latitude,
+        lng: locationToUse.coordinates.longitude,
+        radiusMeters: radius
+      });
+
       const response = await fetch('http://localhost:3000/api/restrictions', {
         method: 'POST',
         headers: {
@@ -61,6 +69,8 @@ function App() {
         }),
         signal: controller.signal
       });
+      
+      console.log('Fetch request completed, response:', response);
 
       clearTimeout(timeoutId);
 
@@ -108,6 +118,10 @@ function App() {
       </header>
       
       <main className="app-main">
+        <RadiusSelector 
+          selectedRadius={radiusMeters} 
+          onRadiusChange={handleRadiusChange}
+        />
         <LocationInput onLocationChange={handleLocationChange} />
         <LocationDisplay locationData={locationData} />
         <FlightRestrictions 

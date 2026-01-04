@@ -44,7 +44,7 @@ function MapUpdater({ position }) {
 
 const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }) => {
   const [position, setPosition] = useState(initialPosition);
-  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [selectedPosition, setSelectedPosition] = useState(initialPosition);
 
   const handleMapClick = (e) => {
     const { lat, lng } = e.latlng;
@@ -54,12 +54,9 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
   };
 
   const handleSubmitLocation = async () => {
-    if (!selectedPosition) {
-      alert('Please click on the map to select a location first');
-      return;
-    }
-
-    const [lat, lng] = selectedPosition;
+    // Use selected position if available, otherwise use default position
+    const positionToUse = selectedPosition || initialPosition;
+    const [lat, lng] = positionToUse;
 
     try {
       // Use OpenStreetMap Nominatim to reverse geocode coordinates to address

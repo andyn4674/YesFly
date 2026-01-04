@@ -149,18 +149,46 @@ export class RestrictionService {
    * @returns GeoJSON FeatureCollection of allowed areas
    */
   private calculateAllowedAreas(searchArea: any, restrictions: any[]): any {
+    console.log('calculateAllowedAreas called with:', {
+      searchAreaFeatures: searchArea.features.length,
+      restrictionsCount: restrictions.length,
+      restrictionsTypes: restrictions.map(r => r.type),
+      restrictionsProperties: restrictions.map(r => r.properties?.name || 'unnamed')
+    });
+    
     let allowedArea = searchArea.features[0];
     
     // Subtract each restriction from the allowed area
     for (const restriction of restrictions) {
       try {
         // Turf.js difference operation - subtract restriction from allowed area
+        // Use the correct syntax for turf.difference (two features, not FeatureCollection)
+        console.log('Calculating difference between allowedArea and restriction', {
+          allowedAreaType: allowedArea.type,
+          restrictionType: restriction.type,
+          allowedAreaCoords: allowedArea.geometry?.coordinates?.length,
+          restrictionCoords: restriction.geometry?.coordinates?.length
+        });
+        
         const difference = turf.difference({
           type: 'FeatureCollection',
           features: [allowedArea, restriction]
         });
+        
+        console.log('Difference result:', {
+          result: difference,
+          resultType: difference?.type,
+          resultIsNull: difference === null
+        });
+        
         if (difference) {
           allowedArea = difference;
+          console.log('Updated allowedArea:', {
+            type: allowedArea.type,
+            coordinatesLength: allowedArea.geometry?.coordinates?.length
+          });
+        } else {
+          console.log('Difference returned null - restriction completely covers allowed area');
         }
       } catch (error) {
         // If difference operation fails, continue with current allowed area

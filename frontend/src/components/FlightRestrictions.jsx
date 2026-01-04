@@ -59,6 +59,22 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
     }
   };
 
+  const formatAreaUS = (sqMeters, radiusMeters) => {
+    // Use the unit converter for US customary units
+    if (typeof window !== 'undefined') {
+      try {
+        // Import the unit converter dynamically
+        const { unitConverter } = require('../utils/unitConverter');
+        return unitConverter.formatAreaDisplay(sqMeters, radiusMeters);
+      } catch (error) {
+        // Fallback to simple conversion
+        const sqMiles = sqMeters / 2589988;
+        return sqMiles >= 1 ? `${sqMiles.toFixed(2)} sq mi` : `${sqMeters.toFixed(0)} m²`;
+      }
+    }
+    return `${sqMeters.toFixed(0)} m²`;
+  };
+
   const formatTime = (dateString) => {
     return new Date(dateString).toLocaleString();
   };
@@ -122,51 +138,51 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
           </div>
         </div>
 
-      <div className="restrictions-grid">
-        {/* Search Area */}
-        <div className="restriction-card search-area">
-          <div className="card-header">
-            <div className="color-indicator search"></div>
-            <h4>Search Area</h4>
-          </div>
-          <div className="card-content">
-            <div className="restriction-info">
-              <span className="label">Area:</span>
-              <span className="value">
-                {restrictions.searchArea.features.length > 0 
-                  ? formatArea(restrictions.searchArea.features[0].properties?.areaSqMeters || 0)
-                  : 'Calculating...'}
-              </span>
-            </div>
-            <div className="restriction-info">
-              <span className="label">Radius:</span>
-              <span className="value">{radiusMeters} meters</span>
-            </div>
-          </div>
-        </div>
+      <div className="restrictions-list">
+        {(() => {
+          // Combine and sort restrictions by type
+          const allRestrictions = [
+            ...restrictions.airspaceRestrictions.features.map(feature => ({ ...feature, type: 'airspace' })),
+            ...restrictions.localRestrictions.features.map(feature => ({ ...feature, type: 'local' }))
+          ];
+          
+          // Sort by type (airspace first, then local), then by name
+          allRestrictions.sort((a, b) => {
+            if (a.type !== b.type) {
+              return a.type === 'airspace' ? -1 : 1;
+            }
+            return a.properties.name.localeCompare(b.properties.name);
+          });
 
-        {/* Airspace Restrictions */}
-        <div className="restriction-card airspace">
-          <div className="card-header">
-            <div className="color-indicator airspace"></div>
-            <h4>FAA Airspace Restrictions</h4>
-            <span className="count">({restrictions.airspaceRestrictions.features.length})</span>
-          </div>
-          <div className="card-content">
-            {restrictions.airspaceRestrictions.features.length === 0 ? (
-              <p className="no-restrictions">No airspace restrictions found in this area.</p>
-            ) : (
-              restrictions.airspaceRestrictions.features.map((restriction, index) => (
-                <div key={index} className="restriction-item">
-                  <div className="restriction-header">
-                    <span className="restriction-name">{restriction.properties.name}</span>
-                    <span className="restriction-category">{restriction.properties.category}</span>
-                  </div>
-                  <div className="restriction-details">
-                    <div className="detail-row">
-                      <span className="label">Area:</span>
-                      <span className="value">{formatArea(restriction.properties.areaSqMeters)}</span>
-                    </div>
+          if (allRestrictions.length === 0) {
+            return (
+              <div className="no-restrictions">
+                <p>No flight restrictions found in this area.</p>
+              </div>
+            );
+          }
+
+          return allRestrictions.map((restriction, index) => (
+            <div key={index} className={`restriction-item-horizontal ${restriction.type}`}>
+              <div className="restriction-header">
+                <div className="restriction-type-indicator">
+                  <div className={`color-dot ${restriction.type}`}></div>
+                  <span className="restriction-type">
+                    {restriction.type === 'airspace' ? 'FAA Airspace' : 'Local'}
+                  </span>
+                </div>
+                <div className="restriction-info">
+                  <span className="restriction-name">{restriction.properties.name}</span>
+                  <span className="restriction-category">{restriction.properties.category}</span>
+                </div>
+              </div>
+              <div className="restriction-details">
+                <div className="detail-row">
+                  <span className="label">Area:</span>
+                  <span className="value">{formatArea(restriction.properties.areaSqMeters)}</span>
+                </div>
+                {restriction.type === 'airspace' ? (
+                  <>
                     <div className="detail-row">
                       <span className="label">Altitude:</span>
                       <span className="value">
@@ -181,35 +197,9 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
                       <span className="label">Source:</span>
                       <span className="value">{restriction.properties.source}</span>
                     </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Local Restrictions */}
-        <div className="restriction-card local">
-          <div className="card-header">
-            <div className="color-indicator local"></div>
-            <h4>Local Restrictions</h4>
-            <span className="count">({restrictions.localRestrictions.features.length})</span>
-          </div>
-          <div className="card-content">
-            {restrictions.localRestrictions.features.length === 0 ? (
-              <p className="no-restrictions">No local restrictions found in this area.</p>
-            ) : (
-              restrictions.localRestrictions.features.map((restriction, index) => (
-                <div key={index} className="restriction-item">
-                  <div className="restriction-header">
-                    <span className="restriction-name">{restriction.properties.name}</span>
-                    <span className="restriction-category">{restriction.properties.category}</span>
-                  </div>
-                  <div className="restriction-details">
-                    <div className="detail-row">
-                      <span className="label">Area:</span>
-                      <span className="value">{formatArea(restriction.properties.areaSqMeters)}</span>
-                    </div>
+                  </>
+                ) : (
+                  <>
                     <div className="detail-row">
                       <span className="label">City:</span>
                       <span className="value">{restriction.properties.city}</span>
@@ -226,68 +216,12 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
                       <span className="label">Source:</span>
                       <span className="value">{restriction.properties.source}</span>
                     </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Allowed Areas */}
-        <div className="restriction-card allowed">
-          <div className="card-header">
-            <div className="color-indicator allowed"></div>
-            <h4>Allowed Flight Areas</h4>
-          </div>
-          <div className="card-content">
-            {restrictions.allowedAreas.features.length === 0 ? (
-              <div className="no-allowed">
-                <p className="warning">⚠️ No areas allow drone flight in this search radius.</p>
-                <p className="note">Please select a different location or reduce the search radius.</p>
+                  </>
+                )}
               </div>
-            ) : (
-              <>
-                <div className="allowed-summary">
-                  <span className="label">Total Allowed Area:</span>
-                  <span className="value">
-                    {restrictions.allowedAreas.features.reduce((total, feature) => 
-                      total + (feature.properties?.areaSqMeters || 0), 0).toLocaleString()} m²
-                  </span>
-                </div>
-                <div className="allowed-list">
-                  {restrictions.allowedAreas.features.map((area, index) => (
-                    <div key={index} className="allowed-item">
-                      <span className="allowed-name">Area {index + 1}</span>
-                      <span className="allowed-area">{formatArea(area.properties?.areaSqMeters || 0)}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="legend">
-        <h4>Legend</h4>
-        <div className="legend-items">
-          <div className="legend-item">
-            <div className="color-box search"></div>
-            <span>Search Area</span>
-          </div>
-          <div className="legend-item">
-            <div className="color-box airspace"></div>
-            <span>FAA Airspace Restrictions</span>
-          </div>
-          <div className="legend-item">
-            <div className="color-box local"></div>
-            <span>Local Restrictions</span>
-          </div>
-          <div className="legend-item">
-            <div className="color-box allowed"></div>
-            <span>Allowed Areas</span>
-          </div>
-        </div>
+            </div>
+          ));
+        })()}
       </div>
     </div>
   );
