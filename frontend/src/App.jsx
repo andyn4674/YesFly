@@ -2,13 +2,102 @@ import { useState } from 'react'
 import LocationInput from './components/LocationInput'
 import LocationDisplay from './components/LocationDisplay'
 import FlightRestrictions from './components/FlightRestrictions'
+import MapVisualization from './components/MapVisualization'
 import './App.css'
 
 function App() {
   const [locationData, setLocationData] = useState(null)
+  const [restrictions, setRestrictions] = useState(null)
+  const [radiusMeters, setRadiusMeters] = useState(1000)
 
   const handleLocationChange = (data) => {
+    console.log('Location changed:', data);
     setLocationData(data)
+    setRestrictions(null) // Clear previous restrictions when location changes
+    
+    console.log('About to call fetchRestrictions with radius:', radiusMeters);
+    
+    // Trigger API call for the new location with current radius
+    fetchRestrictions(radiusMeters, data);
+    
+    console.log('fetchRestrictions called');
+  }
+
+  const handleRadiusChange = (newRadius) => {
+    setRadiusMeters(newRadius)
+    if (locationData) {
+      // Trigger new restriction check when radius changes
+      fetchRestrictions(newRadius)
+    }
+  }
+
+  const fetchRestrictions = async (radius = radiusMeters, locationDataOverride = null) => {
+    // Use the passed location data or fall back to state
+    const locationToUse = locationDataOverride || locationData;
+    
+    if (!locationToUse?.coordinates) return;
+
+    console.log('Fetching restrictions for:', {
+      lat: locationToUse.coordinates.latitude,
+      lng: locationToUse.coordinates.longitude,
+      radiusMeters: radius
+    });
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      console.log('Making API request...');
+
+      const response = await fetch('http://localhost:3000/api/restrictions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lat: locationToUse.coordinates.latitude,
+          lng: locationToUse.coordinates.longitude,
+          radiusMeters: radius
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Response received:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
+      if (response.ok) {
+        console.log('Parsing JSON response...');
+        const data = await response.json();
+        console.log('API response data:', data);
+        console.log('Setting restrictions to:', data.data);
+        setRestrictions(data.data);
+      } else {
+        console.error('Response not ok:', response.statusText);
+        console.log('Setting restrictions to empty data due to failed response');
+        // Set restrictions to empty data to show the map with no restrictions
+        setRestrictions({
+          searchArea: { type: 'FeatureCollection', features: [] },
+          airspaceRestrictions: { type: 'FeatureCollection', features: [] },
+          localRestrictions: { type: 'FeatureCollection', features: [] },
+          allowedAreas: { type: 'FeatureCollection', features: [] }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching restrictions:', err);
+      console.log('Setting restrictions to empty data due to error');
+      // Set restrictions to empty data to show the map even if API fails
+      setRestrictions({
+        searchArea: { type: 'FeatureCollection', features: [] },
+        airspaceRestrictions: { type: 'FeatureCollection', features: [] },
+        localRestrictions: { type: 'FeatureCollection', features: [] },
+        allowedAreas: { type: 'FeatureCollection', features: [] }
+      });
+    }
   }
 
   return (
@@ -21,7 +110,16 @@ function App() {
       <main className="app-main">
         <LocationInput onLocationChange={handleLocationChange} />
         <LocationDisplay locationData={locationData} />
-        <FlightRestrictions locationData={locationData} radiusMeters={1000} />
+        <FlightRestrictions 
+          locationData={locationData} 
+          radiusMeters={radiusMeters} 
+          onRadiusChange={handleRadiusChange}
+        />
+        <MapVisualization 
+          locationData={locationData} 
+          restrictions={restrictions} 
+          radiusMeters={radiusMeters}
+        />
       </main>
       
       <footer className="app-footer">

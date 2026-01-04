@@ -1,0 +1,129 @@
+.radius-selector {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.radius-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.radius-options {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.radius-option {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radius-input {
+  display: none;
+}
+
+.radius-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.radius-card:hover {
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+.radius-option input:checked + .radius-card {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1);
+}
+
+.radius-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.radius-description {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.radius-info {
+  border-top: 2px solid #f3f4f6;
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+.current-radius,
+.radius-meters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.current-radius:last-child,
+.radius-meters:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .radius-options {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .radius-card {
+    padding: 10px;
+  }
+  
+  .radius-value {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .radius-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .radius-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

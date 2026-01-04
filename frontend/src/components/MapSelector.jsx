@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -23,6 +23,22 @@ function MapClickHandler({ onMapClick }) {
       onMapClick(e);
     }
   });
+  return null;
+}
+
+function MapUpdater({ position }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (map && position) {
+      const currentZoom = map.getZoom();
+      map.setView(position, currentZoom, {
+        animate: true,
+        pan: { duration: 0.5 }
+      });
+    }
+  }, [map, position]);
+  
   return null;
 }
 
@@ -79,7 +95,7 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
       (position) => {
         const { latitude, longitude } = position.coords;
         setPosition([latitude, longitude]);
-        // Just move the map to current location, don't submit
+        setSelectedPosition([latitude, longitude]); // Set selected position to current location
       },
       (error) => {
         console.error('Error getting location:', error);
@@ -112,6 +128,7 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <MapUpdater position={position} />
           <MapClickHandler onMapClick={handleMapClick} />
           <Marker position={position}>
             <Popup>

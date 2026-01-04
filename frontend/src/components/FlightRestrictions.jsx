@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FlightRestrictions.css';
 
-const FlightRestrictions = ({ locationData, radiusMeters = 1000 }) => {
+const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange }) => {
   const [restrictions, setRestrictions] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -42,6 +42,12 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000 }) => {
       setError('Failed to load flight restrictions. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRadiusChange = (newRadius) => {
+    if (onRadiusChange) {
+      onRadiusChange(newRadius);
     }
   };
 
@@ -106,15 +112,15 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000 }) => {
 
   return (
     <div className="flight-restrictions">
-      <div className="restrictions-header">
-        <h3>Flight Restrictions</h3>
-        <div className="search-info">
-          <span className="radius">Search Radius: {radiusMeters}m</span>
-          <span className="coordinates">
-            {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
-          </span>
+        <div className="restrictions-header">
+          <h3>Flight Restrictions</h3>
+          <div className="search-info">
+            <span className="radius">Search Radius: {radiusMeters}m</span>
+            <span className="coordinates">
+              {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
+            </span>
+          </div>
         </div>
-      </div>
 
       <div className="restrictions-grid">
         {/* Search Area */}
