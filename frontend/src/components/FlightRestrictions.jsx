@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './FlightRestrictions.css';
 // Import shared types for type checking (will be used in TypeScript conversion)
 import { RestrictionCategory, RestrictionType } from '@shared/types/RestrictionLayer';
-import { unitConverter } from '../utils/unitConverter';
 
-const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange }) => {
+const FlightRestrictions = ({ locationData, radius = 1000, onRadiusChange }) => {
   const [restrictions, setRestrictions] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -13,7 +12,7 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
     if (locationData && locationData.coordinates) {
       fetchRestrictions();
     }
-  }, [locationData, radiusMeters]);
+  }, [locationData, radius]);
 
   const fetchRestrictions = async () => {
     if (!locationData?.coordinates) return;
@@ -30,7 +29,7 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
         body: JSON.stringify({
           lat: locationData.coordinates.latitude,
           lng: locationData.coordinates.longitude,
-          radiusMeters: radiusMeters
+          radius: radius
         }),
       });
 
@@ -52,30 +51,6 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
     if (onRadiusChange) {
       onRadiusChange(newRadius);
     }
-  };
-
-  const formatArea = (sqMeters) => {
-    if (sqMeters >= 1000000) {
-      return `${(sqMeters / 1000000).toFixed(2)} km²`;
-    } else {
-      return `${sqMeters.toFixed(0)} m²`;
-    }
-  };
-
-  const formatAreaUS = (sqMeters, radiusMeters) => {
-    // Use the unit converter for US customary units
-    if (typeof window !== 'undefined') {
-      try {
-        // Import the unit converter dynamically
-        const { unitConverter } = require('../utils/unitConverter');
-        return unitConverter.formatAreaDisplay(sqMeters, radiusMeters);
-      } catch (error) {
-        // Fallback to simple conversion
-        const sqMiles = sqMeters / 2589988;
-        return sqMiles >= 1 ? `${sqMiles.toFixed(2)} sq mi` : `${sqMeters.toFixed(0)} m²`;
-      }
-    }
-    return `${sqMeters.toFixed(0)} m²`;
   };
 
   const formatTime = (dateString) => {
@@ -134,7 +109,7 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
         <div className="restrictions-header">
           <h3>Flight Restrictions</h3>
           <div className="search-info">
-            <span className="radius">Search Radius: {unitConverter.formatRadiusDisplay(radiusMeters)}</span>
+            <span className="radius">Search Radius: {radius} mi</span>
             <span className="coordinates">
               {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
             </span>

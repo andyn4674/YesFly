@@ -33,7 +33,7 @@ export class RestrictionController {
    * {
    *   "lat": 37.7749,
    *   "lng": -122.4194,
-   *   "radiusMeters": 1000
+   *   "radius": 1000
    * }
    * 
    * Response format:
@@ -50,20 +50,20 @@ export class RestrictionController {
       const input: LocationInput = req.body;
 
       // Basic validation - ensure required fields are present
-      if (!input || typeof input.lat !== 'number' || typeof input.lng !== 'number' || typeof input.radiusMeters !== 'number') {
+      if (!input || typeof input.lat !== 'number' || typeof input.lng !== 'number' || typeof input.radius !== 'number') {
         res.status(400).json({
           error: 'Invalid request format',
-          message: 'Request must contain lat (number), lng (number), and radiusMeters (number)',
+          message: 'Request must contain lat (number), lng (number), and radius (number)',
           example: {
             lat: 37.7749,
             lng: -122.4194,
-            radiusMeters: 1000
+            radius: 1
           }
         });
         return;
       }
 
-      console.log(`Processing restriction request: lat=${input.lat}, lng=${input.lng}, radius=${input.radiusMeters}m`);
+      console.log(`Processing restriction request: lat=${input.lat}, lng=${input.lng}, radius=${input.radius}m`);
 
       // 2. Delegate to service layer for business logic
       const restrictions = await this.restrictionService.getRestrictions(input);
@@ -135,7 +135,7 @@ export class RestrictionController {
           requestBody: {
             lat: 'Latitude (number, -90 to 90)',
             lng: 'Longitude (number, -180 to 180)',
-            radiusMeters: 'Search radius in meters (number, 1 to 100000)'
+            radius: 'Search radius (number, 0.01893939 to 5)'
           },
           response: {
             searchArea: 'GeoJSON FeatureCollection of the search buffer',
@@ -156,7 +156,6 @@ export class RestrictionController {
       },
       notes: [
         'All coordinates use WGS84 (EPSG:4326) coordinate system',
-        'Radius is limited to 100km maximum for performance reasons',
         'Response includes mock data in MVP - will integrate with real GIS APIs in production',
         'All areas are returned as GeoJSON polygons with metadata properties'
       ]

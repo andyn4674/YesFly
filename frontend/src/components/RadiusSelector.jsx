@@ -3,12 +3,12 @@ import './RadiusSelector.css';
 
 const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
   const radiusOptions = [
-    { value: 30.48, label: '100 ft', description: 'Small area around you' },
-    { value: 402.34, label: '0.25 mi', description: 'Neighborhood area' },
-    { value: 804.67, label: '0.5 mi', description: 'Local area' },
-    { value: 1609.34, label: '1 mi', description: 'City block area' },
-    { value: 3218.69, label: '2 mi', description: 'Suburban area' },
-    { value: 8046.72, label: '5 mi', description: 'Regional area' }
+    { value: 0.01893939, label: '100 ft', description: 'Small area around you' },
+    { value: 0.25, label: '0.25 mi', description: 'Neighborhood area' },
+    { value: 0.5, label: '0.5 mi', description: 'Local area' },
+    { value: 1, label: '1 mi', description: 'City block area' },
+    { value: 2, label: '2 mi', description: 'Large area' },
+    { value: 5, label: '5 mi', description: 'Regional area' }
   ];
 
   return (

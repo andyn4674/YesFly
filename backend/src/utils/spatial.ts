@@ -23,7 +23,7 @@ type TurfFeature = any;
  * @returns Promise that resolves to validated input or throws error
  */
 export function validateInput(input: LocationInput): LocationInput {
-  const { lat, lng, radiusMeters } = input;
+  const { lat, lng, radius } = input;
 
   // Validate latitude (-90 to 90)
   if (typeof lat !== 'number' || lat < -90 || lat > 90) {
@@ -33,16 +33,6 @@ export function validateInput(input: LocationInput): LocationInput {
   // Validate longitude (-180 to 180)
   if (typeof lng !== 'number' || lng < -180 || lng > 180) {
     throw new Error('Invalid longitude. Must be between -180 and 180.');
-  }
-
-  // Validate radius (positive number)
-  if (typeof radiusMeters !== 'number' || radiusMeters <= 0) {
-    throw new Error('Invalid radius. Must be a positive number in meters.');
-  }
-
-  // Reasonable maximum radius (100km)
-  if (radiusMeters > 100000) {
-    throw new Error('Radius too large. Maximum allowed is 100,000 meters (100km).');
   }
 
   return input;
@@ -62,20 +52,20 @@ export function createPoint(lat: number, lng: number): any {
    * Generates a search area buffer around a point
    * @param lat Latitude of center point
    * @param lng Longitude of center point
-   * @param radiusMeters Radius in meters
+   * @param radius Radius
    * @returns GeoJSON FeatureCollection with the buffer polygon
    */
   export function generateSearchArea(
     lat: number,
     lng: number,
-    radiusMeters: number
+    radius: number
   ): RestrictionFeatureCollection {
   try {
     const centerPoint = createPoint(lat, lng);
     
     // Create buffer using Turf.js
-    // Units: 'meters' for radius, 'kilometers' for distance calculations
-    const buffer = turf.buffer(centerPoint, radiusMeters / 1000, { units: 'kilometers' });
+    // Units: 'miles'
+    const buffer = turf.buffer(centerPoint, radius, { units: 'miles' });
     
     // Convert to FeatureCollection format expected by frontend
     return {
@@ -92,14 +82,14 @@ export function createPoint(lat: number, lng: number): any {
  * Used for generating mock restriction areas
  * @param centerLng Center longitude
  * @param centerLat Center latitude
- * @param maxRadiusMeters Maximum distance from center
+ * @param maxRadius Maximum distance from center
  * @param numVertices Number of vertices for the polygon
  * @returns Turf.js Polygon feature
  */
 export function createRandomPolygon(
   centerLng: number,
   centerLat: number,
-  maxRadiusMeters: number,
+  maxRadius: number,
   numVertices: number = 6
 ): any {
   const vertices: number[][] = [];
@@ -110,14 +100,14 @@ export function createRandomPolygon(
     const angle = Math.random() * 2 * Math.PI;
     
     // Random distance (0 to maxRadius)
-    const distance = Math.random() * maxRadiusMeters;
+    const distance = Math.random() * maxRadius;
     
     // Convert polar coordinates to lat/lng
     const vertex = turf.destination(
       [centerLng, centerLat],
-      distance / 1000, // Convert to km for Turf
+      distance,
       angle * (180 / Math.PI), // Convert to degrees
-      { units: 'kilometers' }
+      { units: 'miles' }
     );
     
     vertices.push([vertex.geometry.coordinates[0], vertex.geometry.coordinates[1]]);

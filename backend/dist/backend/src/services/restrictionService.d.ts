@@ -17,25 +17,25 @@ import { LocationInput, RestrictionsResponse } from '../types';
 export declare class RestrictionService {
     /**
      * Main method to get restrictions for a given location and radius
-     * @param input Location and radius parameters
+     * @param input Location and radius parameters (converted to feet internally)
      * @returns Promise resolving to restrictions response
      */
     getRestrictions(input: LocationInput): Promise<RestrictionsResponse>;
     /**
-     * Generates mock FAA airspace restrictions
+     * Generates mock FAA airspace restrictions using imperial units
      * In production, this would call FAA ArcGIS REST services
      * @param lat Center latitude
      * @param lng Center longitude
-     * @param radiusMeters Search radius
+     * @param radiusFeet Search radius in feet
      * @returns GeoJSON FeatureCollection of airspace restrictions
      */
     private generateAirspaceRestrictions;
     /**
-     * Generates mock local/city restrictions
+     * Generates mock local/city restrictions using imperial units
      * In production, this would call city GIS open data APIs
      * @param lat Center latitude
      * @param lng Center longitude
-     * @param radiusMeters Search radius
+     * @param radiusFeet Search radius in feet
      * @returns GeoJSON FeatureCollection of local restrictions
      */
     private generateLocalRestrictions;
@@ -51,16 +51,13 @@ export declare class RestrictionService {
      */
     private getRandomAirspaceCategory;
     /**
+     * Helper method to generate random airport facility code
+     * @returns Random 3-4 letter airport code (e.g., "DFW", "LAX")
+     */
+    private generateRandomAirportCode;
+    /**
      * Helper method to get random local restriction category
      */
     private getRandomLocalCategory;
-    /**
-     * Helper method to generate airspace names
-     */
-    private generateAirspaceName;
-    /**
-     * Helper method to generate local restriction names
-     */
-    private generateLocalName;
 }
 //# sourceMappingURL=restrictionService.d.ts.map

@@ -6,7 +6,7 @@
 export interface LocationInput {
   lat: number;
   lng: number;
-  radiusMeters: number;
+  radius: number;
 }
 
 // Import shared restriction layer types
@@ -30,9 +30,16 @@ export interface RestrictionsResponse {
 
 // Mock data configuration
 export interface MockDataConfig {
-  minRadiusMeters: number;
-  maxRadiusMeters: number;
+  minRadius: number;
+  maxRadius: number;
   maxRestrictionCount: number;
+  // Imperial units for FAA compatibility
+  faaAirspaceClasses?: {
+    [key: string]: {
+      maxAlt: number;
+      description: string;
+    };
+  };
 }
 
 // Re-export shared types for convenience

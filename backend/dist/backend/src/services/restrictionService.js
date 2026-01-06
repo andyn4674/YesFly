@@ -35,15 +35,26 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RestrictionService = void 0;
 const turf = __importStar(require("@turf/turf"));
+const types_1 = require("../types");
 const spatial_1 = require("../utils/spatial");
 /**
  * Mock data configuration
  * This can be easily replaced with real GIS API calls later
+ * All measurements in imperial units (feet) for FAA compatibility
  */
 const MOCK_CONFIG = {
-    minRadiusMeters: 100,
-    maxRadiusMeters: 5000,
-    maxRestrictionCount: 8
+    minRadius: 328, // ~100 meters in feet
+    maxRadius: 16404, // ~5000 meters in feet
+    maxRestrictionCount: 8,
+    // FAA airspace altitude limits in feet
+    faaAirspaceClasses: {
+        'Class B': { maxAlt: 10000, description: 'Busy airport airspace' },
+        'Class C': { maxAlt: 4000, description: 'Medium airport airspace' },
+        'Class D': { maxAlt: 2500, description: 'Small airport airspace' },
+        'Class E': { maxAlt: 18000, description: 'Controlled airspace' },
+        'Restricted': { maxAlt: 0, description: 'No-fly zone' },
+        'Prohibited': { maxAlt: 0, description: 'Critical no-fly zone' }
+    }
 };
 /**
  * Service for handling drone flight restriction data
@@ -63,19 +74,21 @@ const MOCK_CONFIG = {
 class RestrictionService {
     /**
      * Main method to get restrictions for a given location and radius
-     * @param input Location and radius parameters
+     * @param input Location and radius parameters (converted to feet internally)
      * @returns Promise resolving to restrictions response
      */
     async getRestrictions(input) {
         try {
             // 1. Validate input parameters
             const validatedInput = (0, spatial_1.validateInput)(input);
-            const { lat, lng, radiusMeters } = validatedInput;
-            // 2. Generate search area buffer
-            const searchArea = (0, spatial_1.generateSearchArea)(lat, lng, radiusMeters);
+            // Convert meters to feet for internal processing
+            const radiusFeet = validatedInput.radius;
+            const { lat, lng } = validatedInput;
+            // 2. Generate search area buffer (using feet)
+            const searchArea = (0, spatial_1.generateSearchArea)(lat, lng, radiusFeet);
             // 3. Generate mock restriction data
-            const airspaceRestrictions = this.generateAirspaceRestrictions(lat, lng, radiusMeters);
-            const localRestrictions = this.generateLocalRestrictions(lat, lng, radiusMeters);
+            const airspaceRestrictions = this.generateAirspaceRestrictions(lat, lng, radiusFeet);
+            const localRestrictions = this.generateLocalRestrictions(lat, lng, radiusFeet);
             // 4. Calculate allowed areas (complement of restrictions)
             const allowedAreas = this.calculateAllowedAreas(searchArea, [...airspaceRestrictions.features, ...localRestrictions.features]);
             return {
@@ -90,31 +103,49 @@ class RestrictionService {
         }
     }
     /**
-     * Generates mock FAA airspace restrictions
+     * Generates mock FAA airspace restrictions using imperial units
      * In production, this would call FAA ArcGIS REST services
      * @param lat Center latitude
      * @param lng Center longitude
-     * @param radiusMeters Search radius
+     * @param radiusFeet Search radius in feet
      * @returns GeoJSON FeatureCollection of airspace restrictions
      */
-    generateAirspaceRestrictions(lat, lng, radiusMeters) {
+    generateAirspaceRestrictions(lat, lng, radiusFeet) {
         const count = Math.floor(Math.random() * 3) + 1; // 1-3 restrictions
         const features = [];
+        // Get FAA airspace classes from config (with null check)
+        const airspaceClasses = Object.entries(MOCK_CONFIG.faaAirspaceClasses || {});
         for (let i = 0; i < count; i++) {
-            // Create random restriction polygon
-            const restriction = (0, spatial_1.createRandomPolygon)(lng, lat, radiusMeters * 0.8, 6);
-            // Add metadata properties
+            // Create random restriction polygon (using feet)
+            const restriction = (0, spatial_1.createRandomPolygon)(lng, lat, radiusFeet * 0.8, 6);
+            // Select random airspace class
+            const [airspaceClass, config] = airspaceClasses[Math.floor(Math.random() * airspaceClasses.length)];
+            // Add metadata properties conforming to RestrictionLayer interface
             restriction.properties = {
                 id: `airspace-${Date.now()}-${i}`,
-                type: 'airspace',
-                category: this.getRandomAirspaceCategory(),
-                name: this.generateAirspaceName(i),
-                description: 'FAA controlled airspace restriction',
-                altitudeMin: Math.floor(Math.random() * 1000),
-                altitudeMax: Math.floor(Math.random() * 4000) + 1000,
+                geometry: restriction.geometry,
+                category: types_1.RestrictionCategory.FAA,
+                type: config.maxAlt === 0 ? types_1.RestrictionType.NO_FLY : types_1.RestrictionType.AUTH_REQUIRED,
+                authority: 'Federal Aviation Administration',
+                description: `${airspaceClass} airspace - ${config.description}`,
+                sourceUrl: 'https://www.faa.gov/uas/',
+                confidenceLevel: types_1.ConfidenceLevel.HIGH,
+                jurisdiction: {
+                    country: 'United States',
+                    state: 'California'
+                },
                 effectiveDate: new Date().toISOString(),
-                source: 'FAA',
-                areaSqMeters: (0, spatial_1.calculateArea)(restriction)
+                notes: `FAA ${airspaceClass} airspace - authorization required for drone operations`,
+                metadata: {
+                    dataSource: 'FAA ArcGIS',
+                    lastVerified: new Date().toISOString()
+                },
+                // FAA-specific properties using imperial units (feet)
+                maxAGL: config.maxAlt, // Maximum altitude in feet
+                airspaceClass: airspaceClass,
+                facility: `K${this.generateRandomAirportCode()}`,
+                radiusFeet: Math.round(radiusFeet),
+                altitudeUnit: 'feet'
             };
             features.push(restriction);
         }
@@ -124,31 +155,66 @@ class RestrictionService {
         };
     }
     /**
-     * Generates mock local/city restrictions
+     * Generates mock local/city restrictions using imperial units
      * In production, this would call city GIS open data APIs
      * @param lat Center latitude
      * @param lng Center longitude
-     * @param radiusMeters Search radius
+     * @param radiusFeet Search radius in feet
      * @returns GeoJSON FeatureCollection of local restrictions
      */
-    generateLocalRestrictions(lat, lng, radiusMeters) {
+    generateLocalRestrictions(lat, lng, radiusFeet) {
         const count = Math.floor(Math.random() * 4) + 1; // 1-4 restrictions
         const features = [];
         for (let i = 0; i < count; i++) {
-            // Create random local restriction polygon
-            const restriction = (0, spatial_1.createRandomPolygon)(lng, lat, radiusMeters * 0.6, 5);
-            // Add metadata properties
+            // Create random local restriction polygon (using feet)
+            const restriction = (0, spatial_1.createRandomPolygon)(lng, lat, radiusFeet * 0.6, 5);
+            // Add metadata properties conforming to RestrictionLayer interface
+            const category = this.getRandomLocalCategory();
+            const restrictionType = i % 2 === 0 ? types_1.RestrictionType.NO_FLY : types_1.RestrictionType.AUTH_REQUIRED;
+            // Local restrictions typically have lower altitude limits (in feet)
+            const maxAltitudes = {
+                'Park': 400,
+                'Stadium': 3000,
+                'Prison': 2000,
+                'Power Plant': 1000,
+                'Hospital': 500,
+                'School': 400
+            };
             restriction.properties = {
                 id: `local-${Date.now()}-${i}`,
-                type: 'local',
-                category: this.getRandomLocalCategory(),
-                name: this.generateLocalName(i),
-                description: 'Local government flight restriction',
-                city: 'Sample City',
+                geometry: restriction.geometry,
+                category: category === 'Park' ? types_1.RestrictionCategory.CITY :
+                    category === 'Stadium' ? types_1.RestrictionCategory.CITY :
+                        category === 'Prison' ? types_1.RestrictionCategory.STATE :
+                            category === 'Power Plant' ? types_1.RestrictionCategory.PRIVATE :
+                                category === 'Hospital' ? types_1.RestrictionCategory.CITY :
+                                    types_1.RestrictionCategory.CITY,
+                type: restrictionType,
+                authority: category === 'Park' ? 'City Parks Department' :
+                    category === 'Stadium' ? 'City Events Authority' :
+                        category === 'Prison' ? 'State Corrections Department' :
+                            category === 'Power Plant' ? 'Private Energy Corporation' :
+                                category === 'Hospital' ? 'City Health Department' :
+                                    'Local Government',
+                description: `${category} - Local government flight restriction`,
+                sourceUrl: 'https://www.citygis.gov/restrictions',
+                confidenceLevel: types_1.ConfidenceLevel.MEDIUM,
+                jurisdiction: {
+                    country: 'United States',
+                    state: 'California',
+                    city: 'San Francisco'
+                },
                 enforcement: '24/7',
                 penalties: 'Fines and legal action',
-                source: 'City GIS',
-                areaSqMeters: (0, spatial_1.calculateArea)(restriction)
+                notes: `Local government restriction at ${category} - check with city authorities before flying`,
+                metadata: {
+                    dataSource: 'City GIS Open Data',
+                    lastVerified: new Date().toISOString()
+                },
+                // Local restriction properties using imperial units (feet)
+                maxAGL: maxAltitudes[category],
+                radiusFeet: Math.round(radiusFeet),
+                altitudeUnit: 'feet'
             };
             features.push(restriction);
         }
@@ -235,38 +301,24 @@ class RestrictionService {
         return categories[Math.floor(Math.random() * categories.length)];
     }
     /**
+     * Helper method to generate random airport facility code
+     * @returns Random 3-4 letter airport code (e.g., "DFW", "LAX")
+     */
+    generateRandomAirportCode() {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let code = '';
+        const length = Math.random() > 0.5 ? 3 : 4; // 3 or 4 letters
+        for (let i = 0; i < length; i++) {
+            code += letters.charAt(Math.floor(Math.random() * letters.length));
+        }
+        return code;
+    }
+    /**
      * Helper method to get random local restriction category
      */
     getRandomLocalCategory() {
         const categories = ['Park', 'Stadium', 'Prison', 'Power Plant', 'Hospital', 'School'];
         return categories[Math.floor(Math.random() * categories.length)];
-    }
-    /**
-     * Helper method to generate airspace names
-     */
-    generateAirspaceName(index) {
-        const names = [
-            'Metropolitan Class B Airspace',
-            'Regional Approach Control',
-            'Airport Traffic Pattern',
-            'Military Operations Area',
-            'Temporary Flight Restriction'
-        ];
-        return `${names[index % names.length]} ${index + 1}`;
-    }
-    /**
-     * Helper method to generate local restriction names
-     */
-    generateLocalName(index) {
-        const names = [
-            'City Park No-Fly Zone',
-            'Stadium Event Area',
-            'Correctional Facility',
-            'Nuclear Power Plant',
-            'Medical Center',
-            'University Campus'
-        ];
-        return `${names[index % names.length]} ${index + 1}`;
     }
 }
 exports.RestrictionService = RestrictionService;

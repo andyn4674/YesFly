@@ -38,7 +38,6 @@ exports.createPoint = createPoint;
 exports.generateSearchArea = generateSearchArea;
 exports.createRandomPolygon = createRandomPolygon;
 exports.featuresIntersect = featuresIntersect;
-exports.calculateArea = calculateArea;
 exports.simplifyGeometry = simplifyGeometry;
 const turf = __importStar(require("@turf/turf"));
 /**
@@ -56,7 +55,7 @@ const turf = __importStar(require("@turf/turf"));
  * @returns Promise that resolves to validated input or throws error
  */
 function validateInput(input) {
-    const { lat, lng, radiusMeters } = input;
+    const { lat, lng, radius } = input;
     // Validate latitude (-90 to 90)
     if (typeof lat !== 'number' || lat < -90 || lat > 90) {
         throw new Error('Invalid latitude. Must be between -90 and 90.');
@@ -64,14 +63,6 @@ function validateInput(input) {
     // Validate longitude (-180 to 180)
     if (typeof lng !== 'number' || lng < -180 || lng > 180) {
         throw new Error('Invalid longitude. Must be between -180 and 180.');
-    }
-    // Validate radius (positive number)
-    if (typeof radiusMeters !== 'number' || radiusMeters <= 0) {
-        throw new Error('Invalid radius. Must be a positive number in meters.');
-    }
-    // Reasonable maximum radius (100km)
-    if (radiusMeters > 100000) {
-        throw new Error('Radius too large. Maximum allowed is 100,000 meters (100km).');
     }
     return input;
 }
@@ -88,15 +79,15 @@ function createPoint(lat, lng) {
  * Generates a search area buffer around a point
  * @param lat Latitude of center point
  * @param lng Longitude of center point
- * @param radiusMeters Radius in meters
+ * @param radius Radius
  * @returns GeoJSON FeatureCollection with the buffer polygon
  */
-function generateSearchArea(lat, lng, radiusMeters) {
+function generateSearchArea(lat, lng, radius) {
     try {
         const centerPoint = createPoint(lat, lng);
         // Create buffer using Turf.js
-        // Units: 'meters' for radius, 'kilometers' for distance calculations
-        const buffer = turf.buffer(centerPoint, radiusMeters / 1000, { units: 'kilometers' });
+        // Units: 'miles'
+        const buffer = turf.buffer(centerPoint, radius, { units: 'miles' });
         // Convert to FeatureCollection format expected by frontend
         return {
             type: 'FeatureCollection',
@@ -112,22 +103,21 @@ function generateSearchArea(lat, lng, radiusMeters) {
  * Used for generating mock restriction areas
  * @param centerLng Center longitude
  * @param centerLat Center latitude
- * @param maxRadiusMeters Maximum distance from center
+ * @param maxRadius Maximum distance from center
  * @param numVertices Number of vertices for the polygon
  * @returns Turf.js Polygon feature
  */
-function createRandomPolygon(centerLng, centerLat, maxRadiusMeters, numVertices = 6) {
+function createRandomPolygon(centerLng, centerLat, maxRadius, numVertices = 6) {
     const vertices = [];
     // Generate random vertices around the center
     for (let i = 0; i < numVertices; i++) {
         // Random angle (0 to 2π)
         const angle = Math.random() * 2 * Math.PI;
         // Random distance (0 to maxRadius)
-        const distance = Math.random() * maxRadiusMeters;
+        const distance = Math.random() * maxRadius;
         // Convert polar coordinates to lat/lng
-        const vertex = turf.destination([centerLng, centerLat], distance / 1000, // Convert to km for Turf
-        angle * (180 / Math.PI), // Convert to degrees
-        { units: 'kilometers' });
+        const vertex = turf.destination([centerLng, centerLat], distance, angle * (180 / Math.PI), // Convert to degrees
+        { units: 'miles' });
         vertices.push([vertex.geometry.coordinates[0], vertex.geometry.coordinates[1]]);
     }
     // Close the polygon by repeating the first vertex
@@ -149,14 +139,6 @@ function featuresIntersect(feature1, feature2) {
         // If intersection fails, assume no intersection
         return false;
     }
-}
-/**
- * Calculates the area of a GeoJSON polygon in square meters
- * @param polygon GeoJSON polygon feature
- * @returns Area in square meters
- */
-function calculateArea(polygon) {
-    return turf.area(polygon);
 }
 /**
  * Simplifies a GeoJSON geometry to reduce complexity

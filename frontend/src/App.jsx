@@ -9,30 +9,30 @@ import './App.css'
 function App() {
   const [locationData, setLocationData] = useState(null)
   const [restrictions, setRestrictions] = useState(null)
-  const [radiusMeters, setRadiusMeters] = useState(1609.34) // 1 mile in meters
+  const [radius, setradius] = useState(1)
 
   const handleLocationChange = (data) => {
     console.log('📍 Location changed:', data);
     setLocationData(data)
     setRestrictions(null) // Clear previous restrictions when location changes
     
-    console.log('📞 About to call fetchRestrictions with radius:', radiusMeters);
+    console.log('📞 About to call fetchRestrictions with radius:', radius);
     
     // Trigger API call for the new location with current radius
-    fetchRestrictions(radiusMeters, data);
+    fetchRestrictions(radius, data);
     
     console.log('✅ fetchRestrictions called');
   }
 
   const handleRadiusChange = (newRadius) => {
-    setRadiusMeters(newRadius)
+    setradius(newRadius)
     if (locationData) {
       // Trigger new restriction check when radius changes
       fetchRestrictions(newRadius)
     }
   }
 
-  const fetchRestrictions = async (radius = radiusMeters, locationDataOverride = null) => {
+  const fetchRestrictions = async (radius = radius, locationDataOverride = null) => {
     // Use the passed location data or fall back to state
     const locationToUse = locationDataOverride || locationData;
     
@@ -41,7 +41,7 @@ function App() {
     console.log('Fetching restrictions for:', {
       lat: locationToUse.coordinates.latitude,
       lng: locationToUse.coordinates.longitude,
-      radiusMeters: radius
+      radius: radius
     });
 
     try {
@@ -54,7 +54,7 @@ function App() {
       console.log('Request body:', {
         lat: locationToUse.coordinates.latitude,
         lng: locationToUse.coordinates.longitude,
-        radiusMeters: radius
+        radius: radius
       });
 
       const response = await fetch('http://localhost:3000/api/restrictions', {
@@ -65,7 +65,7 @@ function App() {
         body: JSON.stringify({
           lat: locationToUse.coordinates.latitude,
           lng: locationToUse.coordinates.longitude,
-          radiusMeters: radius
+          radius: radius
         }),
         signal: controller.signal
       });
@@ -119,20 +119,20 @@ function App() {
       
       <main className="app-main">
         <RadiusSelector 
-          selectedRadius={radiusMeters} 
+          selectedRadius={radius} 
           onRadiusChange={handleRadiusChange}
         />
         <LocationInput onLocationChange={handleLocationChange} />
         <LocationDisplay locationData={locationData} />
         <FlightRestrictions 
           locationData={locationData} 
-          radiusMeters={radiusMeters} 
+          radius={radius} 
           onRadiusChange={handleRadiusChange}
         />
         <MapVisualization 
           locationData={locationData} 
           restrictions={restrictions} 
-          radiusMeters={radiusMeters}
+          radius={radius}
         />
       </main>
       

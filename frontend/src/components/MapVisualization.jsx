@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
-import { unitConverter } from '../utils/unitConverter';
 import { RestrictionCategory, RestrictionType } from '@shared/types/RestrictionLayer';
 import 'leaflet/dist/leaflet.css';
 
@@ -18,12 +17,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) => {
+const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
   const [mapZoom, setMapZoom] = useState(13);
 
   useEffect(() => {
-    console.log('MapVisualization props:', { locationData, restrictions, radiusMeters });
+    console.log('MapVisualization props:', { locationData, restrictions, radius });
     if (locationData?.coordinates) {
       setMapCenter([locationData.coordinates.latitude, locationData.coordinates.longitude]);
       setMapZoom(14);
@@ -114,7 +113,7 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
         <div className="map-header">
           <h3>Flight Restriction Map</h3>
           <div className="map-info">
-            <span className="radius">Search Radius: {unitConverter.formatRadiusDisplay(radiusMeters)}</span>
+            <span className="radius">Search Radius: {radius} mi</span>
             <span className="coordinates">
               {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
             </span>
@@ -133,7 +132,7 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
       <div className="map-header">
         <h3>Flight Restriction Map</h3>
         <div className="map-info">
-          <span className="radius">Search Radius: {unitConverter.formatRadiusDisplay(radiusMeters)}</span>
+          <span className="radius">Search Radius: {radius} mi</span>
           <span className="coordinates">
             {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
           </span>
@@ -168,7 +167,7 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
               <Popup>
                   <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
                     <h4 style={{ margin: '0 0 5px 0', color: '#3b82f6' }}>Search Area</h4>
-                    <p style={{ margin: '0 0 5px 0' }}><strong>Radius:</strong> {radiusMeters}</p>
+                    <p style={{ margin: '0 0 5px 0' }}><strong>Radius:</strong> {radius}</p>
                     <p style={{ margin: '0' }}><strong>Center:</strong> {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}</p>
                   </div>
               </Popup>

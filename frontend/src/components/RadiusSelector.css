@@ -73,8 +73,7 @@
   margin-top: 8px;
 }
 
-.current-radius,
-.radius-meters {
+.current-radius {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -82,8 +81,7 @@
   border-bottom: 1px solid #f3f4f6;
 }
 
-.current-radius:last-child,
-.radius-meters:last-child {
+.current-radius:last-child {
   border-bottom: none;
 }
 

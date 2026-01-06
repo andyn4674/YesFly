@@ -1,4 +1,4 @@
-import { LocationInput, GeoJSONFeatureCollection } from '../types';
+import { LocationInput, RestrictionFeatureCollection } from '../types';
 /**
  * Spatial utility functions for drone flight restriction analysis
  *
@@ -25,20 +25,20 @@ export declare function createPoint(lat: number, lng: number): any;
  * Generates a search area buffer around a point
  * @param lat Latitude of center point
  * @param lng Longitude of center point
- * @param radiusMeters Radius in meters
+ * @param radius Radius
  * @returns GeoJSON FeatureCollection with the buffer polygon
  */
-export declare function generateSearchArea(lat: number, lng: number, radiusMeters: number): GeoJSONFeatureCollection;
+export declare function generateSearchArea(lat: number, lng: number, radius: number): RestrictionFeatureCollection;
 /**
  * Creates a random polygon within a bounding box
  * Used for generating mock restriction areas
  * @param centerLng Center longitude
  * @param centerLat Center latitude
- * @param maxRadiusMeters Maximum distance from center
+ * @param maxRadius Maximum distance from center
  * @param numVertices Number of vertices for the polygon
  * @returns Turf.js Polygon feature
  */
-export declare function createRandomPolygon(centerLng: number, centerLat: number, maxRadiusMeters: number, numVertices?: number): any;
+export declare function createRandomPolygon(centerLng: number, centerLat: number, maxRadius: number, numVertices?: number): any;
 /**
  * Checks if two GeoJSON features intersect
  * @param feature1 First feature
@@ -46,12 +46,6 @@ export declare function createRandomPolygon(centerLng: number, centerLat: number
  * @returns Boolean indicating if features intersect
  */
 export declare function featuresIntersect(feature1: any, feature2: any): boolean;
-/**
- * Calculates the area of a GeoJSON polygon in square meters
- * @param polygon GeoJSON polygon feature
- * @returns Area in square meters
- */
-export declare function calculateArea(polygon: any): number;
 /**
  * Simplifies a GeoJSON geometry to reduce complexity
  * Useful for performance optimization with complex polygons

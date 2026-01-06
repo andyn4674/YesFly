@@ -26,7 +26,7 @@ export declare class RestrictionController {
      * {
      *   "lat": 37.7749,
      *   "lng": -122.4194,
-     *   "radiusMeters": 1000
+     *   "radius": 1000
      * }
      *
      * Response format:
