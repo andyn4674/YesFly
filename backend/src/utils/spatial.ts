@@ -1,5 +1,5 @@
 import * as turf from '@turf/turf';
-import { LocationInput, GeoJSONFeatureCollection } from '../types';
+import { LocationInput, RestrictionFeatureCollection } from '../types';
 
 // Type aliases for Turf.js types to avoid import issues
 // Using any types as a workaround for Turf.js type export issues
@@ -58,18 +58,18 @@ export function createPoint(lat: number, lng: number): any {
   return turf.point([lng, lat]); // Turf uses [lng, lat] order
 }
 
-/**
- * Generates a search area buffer around a point
- * @param lat Latitude of center point
- * @param lng Longitude of center point
- * @param radiusMeters Radius in meters
- * @returns GeoJSON FeatureCollection with the buffer polygon
- */
-export function generateSearchArea(
-  lat: number,
-  lng: number,
-  radiusMeters: number
-): GeoJSONFeatureCollection {
+  /**
+   * Generates a search area buffer around a point
+   * @param lat Latitude of center point
+   * @param lng Longitude of center point
+   * @param radiusMeters Radius in meters
+   * @returns GeoJSON FeatureCollection with the buffer polygon
+   */
+  export function generateSearchArea(
+    lat: number,
+    lng: number,
+    radiusMeters: number
+  ): RestrictionFeatureCollection {
   try {
     const centerPoint = createPoint(lat, lng);
     
@@ -148,14 +148,6 @@ export function featuresIntersect(
   }
 }
 
-/**
- * Calculates the area of a GeoJSON polygon in square meters
- * @param polygon GeoJSON polygon feature
- * @returns Area in square meters
- */
-export function calculateArea(polygon: any): number {
-  return turf.area(polygon);
-}
 
 /**
  * Simplifies a GeoJSON geometry to reduce complexity

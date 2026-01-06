@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
-import { LocationInput, RestrictionsResponse, MockDataConfig } from '../types';
-import { validateInput, generateSearchArea, createRandomPolygon, calculateArea } from '../utils/spatial';
+import { LocationInput, RestrictionsResponse, MockDataConfig, RestrictionCategory, RestrictionType, ConfidenceLevel } from '../types';
+import { validateInput, generateSearchArea, createRandomPolygon } from '../utils/spatial';
 
 /**
  * Mock data configuration
@@ -79,19 +79,27 @@ export class RestrictionService {
     for (let i = 0; i < count; i++) {
       // Create random restriction polygon
       const restriction = createRandomPolygon(lng, lat, radiusMeters * 0.8, 6);
-      
-      // Add metadata properties
+
+      // Add metadata properties conforming to RestrictionLayer interface
       restriction.properties = {
         id: `airspace-${Date.now()}-${i}`,
-        type: 'airspace',
-        category: this.getRandomAirspaceCategory(),
-        name: this.generateAirspaceName(i),
+        geometry: restriction.geometry,
+        category: RestrictionCategory.FAA,
+        type: RestrictionType.NO_FLY,
+        authority: 'Federal Aviation Administration',
         description: 'FAA controlled airspace restriction',
-        altitudeMin: Math.floor(Math.random() * 1000),
-        altitudeMax: Math.floor(Math.random() * 4000) + 1000,
+        sourceUrl: 'https://www.faa.gov/uas/',
+        confidenceLevel: ConfidenceLevel.HIGH,
+        jurisdiction: {
+          country: 'United States',
+          state: 'California'
+        },
         effectiveDate: new Date().toISOString(),
-        source: 'FAA',
-        areaSqMeters: calculateArea(restriction)
+        notes: 'FAA controlled airspace - authorization required for drone operations',
+        metadata: {
+          dataSource: 'FAA ArcGIS',
+          lastVerified: new Date().toISOString()
+        }
       };
 
       features.push(restriction);
@@ -118,19 +126,42 @@ export class RestrictionService {
     for (let i = 0; i < count; i++) {
       // Create random local restriction polygon
       const restriction = createRandomPolygon(lng, lat, radiusMeters * 0.6, 5);
-      
-      // Add metadata properties
+
+      // Add metadata properties conforming to RestrictionLayer interface
+      const category = this.getRandomLocalCategory();
+      const restrictionType = i % 2 === 0 ? RestrictionType.NO_FLY : RestrictionType.AUTH_REQUIRED;
+
       restriction.properties = {
         id: `local-${Date.now()}-${i}`,
-        type: 'local',
-        category: this.getRandomLocalCategory(),
-        name: this.generateLocalName(i),
+        geometry: restriction.geometry,
+        category: category === 'Park' ? RestrictionCategory.CITY :
+                 category === 'Stadium' ? RestrictionCategory.CITY :
+                 category === 'Prison' ? RestrictionCategory.STATE :
+                 category === 'Power Plant' ? RestrictionCategory.PRIVATE :
+                 category === 'Hospital' ? RestrictionCategory.CITY :
+                 RestrictionCategory.CITY,
+        type: restrictionType,
+        authority: category === 'Park' ? 'City Parks Department' :
+                 category === 'Stadium' ? 'City Events Authority' :
+                 category === 'Prison' ? 'State Corrections Department' :
+                 category === 'Power Plant' ? 'Private Energy Corporation' :
+                 category === 'Hospital' ? 'City Health Department' :
+                 'Local Government',
         description: 'Local government flight restriction',
-        city: 'Sample City',
+        sourceUrl: 'https://www.citygis.gov/restrictions',
+        confidenceLevel: ConfidenceLevel.MEDIUM,
+        jurisdiction: {
+          country: 'United States',
+          state: 'California',
+          city: 'San Francisco'
+        },
         enforcement: '24/7',
         penalties: 'Fines and legal action',
-        source: 'City GIS',
-        areaSqMeters: calculateArea(restriction)
+        notes: 'Local government restriction - check with city authorities before flying',
+        metadata: {
+          dataSource: 'City GIS Open Data',
+          lastVerified: new Date().toISOString()
+        }
       };
 
       features.push(restriction);
@@ -235,32 +266,4 @@ export class RestrictionService {
     return categories[Math.floor(Math.random() * categories.length)];
   }
 
-  /**
-   * Helper method to generate airspace names
-   */
-  private generateAirspaceName(index: number): string {
-    const names = [
-      'Metropolitan Class B Airspace',
-      'Regional Approach Control',
-      'Airport Traffic Pattern',
-      'Military Operations Area',
-      'Temporary Flight Restriction'
-    ];
-    return `${names[index % names.length]} ${index + 1}`;
-  }
-
-  /**
-   * Helper method to generate local restriction names
-   */
-  private generateLocalName(index: number): string {
-    const names = [
-      'City Park No-Fly Zone',
-      'Stadium Event Area',
-      'Correctional Facility',
-      'Nuclear Power Plant',
-      'Medical Center',
-      'University Campus'
-    ];
-    return `${names[index % names.length]} ${index + 1}`;
-  }
 }

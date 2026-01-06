@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './FlightRestrictions.css';
+// Import shared types for type checking (will be used in TypeScript conversion)
+import { RestrictionCategory, RestrictionType } from '@shared/types/RestrictionLayer';
+import { unitConverter } from '../utils/unitConverter';
 
 const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange }) => {
   const [restrictions, setRestrictions] = useState(null);
@@ -131,7 +134,7 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
         <div className="restrictions-header">
           <h3>Flight Restrictions</h3>
           <div className="search-info">
-            <span className="radius">Search Radius: {radiusMeters}m</span>
+            <span className="radius">Search Radius: {unitConverter.formatRadiusDisplay(radiusMeters)}</span>
             <span className="coordinates">
               {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}
             </span>
@@ -151,7 +154,10 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
             if (a.type !== b.type) {
               return a.type === 'airspace' ? -1 : 1;
             }
-            return a.properties.name.localeCompare(b.properties.name);
+            // Use description as fallback if name is not available
+            const nameA = a.properties.name || a.properties.description || '';
+            const nameB = b.properties.name || b.properties.description || '';
+            return nameA.localeCompare(nameB);
           });
 
           if (allRestrictions.length === 0) {
@@ -177,18 +183,8 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
                 </div>
               </div>
               <div className="restriction-details">
-                <div className="detail-row">
-                  <span className="label">Area:</span>
-                  <span className="value">{formatArea(restriction.properties.areaSqMeters)}</span>
-                </div>
                 {restriction.type === 'airspace' ? (
                   <>
-                    <div className="detail-row">
-                      <span className="label">Altitude:</span>
-                      <span className="value">
-                        {restriction.properties.altitudeMin}m - {restriction.properties.altitudeMax}m
-                      </span>
-                    </div>
                     <div className="detail-row">
                       <span className="label">Effective:</span>
                       <span className="value">{formatTime(restriction.properties.effectiveDate)}</span>
@@ -196,6 +192,10 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
                     <div className="detail-row">
                       <span className="label">Source:</span>
                       <span className="value">{restriction.properties.source}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Notes:</span>
+                      <span className="value">{restriction.properties.notes}</span>
                     </div>
                   </>
                 ) : (
@@ -205,16 +205,12 @@ const FlightRestrictions = ({ locationData, radiusMeters = 1000, onRadiusChange 
                       <span className="value">{restriction.properties.city}</span>
                     </div>
                     <div className="detail-row">
-                      <span className="label">Enforcement:</span>
-                      <span className="value">{restriction.properties.enforcement}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="label">Penalties:</span>
-                      <span className="value">{restriction.properties.penalties}</span>
-                    </div>
-                    <div className="detail-row">
                       <span className="label">Source:</span>
                       <span className="value">{restriction.properties.source}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Notes:</span>
+                      <span className="value">{restriction.properties.notes}</span>
                     </div>
                   </>
                 )}

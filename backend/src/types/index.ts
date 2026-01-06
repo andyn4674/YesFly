@@ -9,27 +9,23 @@ export interface LocationInput {
   radiusMeters: number;
 }
 
-// GeoJSON types for response
-export interface GeoJSONFeature {
-  type: 'Feature';
-  properties: Record<string, any>;
-  geometry: {
-    type: string;
-    coordinates: any[];
-  };
-}
+// Import shared restriction layer types
+import {
+  RestrictionFeature,
+  RestrictionFeatureCollection,
+  RestrictionCategory,
+  RestrictionType,
+  ConfidenceLevel,
+  Jurisdiction,
+  RestrictionMetadata
+} from '../../../shared/types/RestrictionLayer';
 
-export interface GeoJSONFeatureCollection {
-  type: 'FeatureCollection';
-  features: GeoJSONFeature[];
-}
-
-// Response structure
+// Response structure using shared types
 export interface RestrictionsResponse {
-  searchArea: GeoJSONFeatureCollection;
-  airspaceRestrictions: GeoJSONFeatureCollection;
-  localRestrictions: GeoJSONFeatureCollection;
-  allowedAreas: GeoJSONFeatureCollection;
+  searchArea: RestrictionFeatureCollection;
+  airspaceRestrictions: RestrictionFeatureCollection;
+  localRestrictions: RestrictionFeatureCollection;
+  allowedAreas: RestrictionFeatureCollection;
 }
 
 // Mock data configuration
@@ -38,3 +34,14 @@ export interface MockDataConfig {
   maxRadiusMeters: number;
   maxRestrictionCount: number;
 }
+
+// Re-export shared types for convenience
+export {
+  RestrictionFeature,
+  RestrictionFeatureCollection,
+  RestrictionCategory,
+  RestrictionType,
+  ConfidenceLevel,
+  Jurisdiction,
+  RestrictionMetadata
+};

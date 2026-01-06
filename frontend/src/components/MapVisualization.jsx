@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import { unitConverter } from '../utils/unitConverter';
+import { RestrictionCategory, RestrictionType } from '@shared/types/RestrictionLayer';
 import 'leaflet/dist/leaflet.css';
 
 // Import Leaflet images for Vite compatibility
@@ -66,10 +67,9 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
       <div style="font-family: Arial, sans-serif; font-size: 12px;">
         <h4 style="margin: 0 0 5px 0; color: #ef4444;">${props.name}</h4>
         <p style="margin: 0 0 5px 0;"><strong>Category:</strong> ${props.category}</p>
-        <p style="margin: 0 0 5px 0;"><strong>Altitude:</strong> ${props.altitudeMin}m - ${props.altitudeMax}m</p>
-        <p style="margin: 0 0 5px 0;"><strong>Area:</strong> ${(props.areaSqMeters / 1000000).toFixed(2)} km²</p>
         <p style="margin: 0 0 5px 0;"><strong>Source:</strong> ${props.source}</p>
-        <p style="margin: 0;"><strong>Effective:</strong> ${new Date(props.effectiveDate).toLocaleDateString()}</p>
+        <p style="margin: 0 0 5px 0;"><strong>Effective:</strong> ${new Date(props.effectiveDate).toLocaleDateString()}</p>
+        <p style="margin: 0;"><strong>Notes:</strong> ${props.notes}</p>
       </div>
     `;
   };
@@ -81,19 +81,15 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
         <h4 style="margin: 0 0 5px 0; color: #f59e0b;">${props.name}</h4>
         <p style="margin: 0 0 5px 0;"><strong>Category:</strong> ${props.category}</p>
         <p style="margin: 0 0 5px 0;"><strong>City:</strong> ${props.city}</p>
-        <p style="margin: 0 0 5px 0;"><strong>Area:</strong> ${(props.areaSqMeters / 1000000).toFixed(2)} km²</p>
-        <p style="margin: 0 0 5px 0;"><strong>Enforcement:</strong> ${props.enforcement}</p>
-        <p style="margin: 0;"><strong>Penalties:</strong> ${props.penalties}</p>
+        <p style="margin: 0;"><strong>Notes:</strong> ${props.notes}</p>
       </div>
     `;
   };
 
   const createAllowedPopup = (feature, index) => {
-    const areaSqMeters = feature.properties?.areaSqMeters || 0;
     return `
       <div style="font-family: Arial, sans-serif; font-size: 12px;">
         <h4 style="margin: 0 0 5px 0; color: #10b981;">Allowed Flight Area ${index + 1}</h4>
-        <p style="margin: 0;"><strong>Area:</strong> ${(areaSqMeters / 1000000).toFixed(2)} km²</p>
         <p style="margin: 0;"><strong>Status:</strong> <span style="color: #10b981; font-weight: bold;">SAFE TO FLY</span></p>
       </div>
     `;
@@ -170,11 +166,11 @@ const MapVisualization = ({ locationData, restrictions, radiusMeters = 1000 }) =
               key={`search-area-${Date.now()}`}
             >
               <Popup>
-                <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
-                  <h4 style={{ margin: '0 0 5px 0', color: '#3b82f6' }}>Search Area</h4>
-                  <p style={{ margin: '0 0 5px 0' }}><strong>Radius:</strong> {radiusMeters} meters</p>
-                  <p style={{ margin: '0' }}><strong>Center:</strong> {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}</p>
-                </div>
+                  <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
+                    <h4 style={{ margin: '0 0 5px 0', color: '#3b82f6' }}>Search Area</h4>
+                    <p style={{ margin: '0 0 5px 0' }}><strong>Radius:</strong> {radiusMeters}</p>
+                    <p style={{ margin: '0' }}><strong>Center:</strong> {locationData.coordinates.latitude.toFixed(6)}, {locationData.coordinates.longitude.toFixed(6)}</p>
+                  </div>
               </Popup>
             </GeoJSON>
           )}

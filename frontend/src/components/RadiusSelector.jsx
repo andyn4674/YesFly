@@ -40,10 +40,6 @@ const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
             {radiusOptions.find(opt => opt.value === selectedRadius)?.label || 'Select a radius'}
           </span>
         </div>
-        <div className="radius-meters">
-          <span className="info-label">Meters:</span>
-          <span className="info-value">{Math.round(selectedRadius)} m</span>
-        </div>
       </div>
     </div>
   );
