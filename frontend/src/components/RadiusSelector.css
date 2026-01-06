@@ -67,36 +67,8 @@
   font-weight: 500;
 }
 
-.radius-info {
-  border-top: 2px solid #f3f4f6;
-  padding-top: 12px;
-  margin-top: 8px;
-}
-
-.current-radius {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
 .current-radius:last-child {
   border-bottom: none;
-}
-
-.info-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-value {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #1f2937;
 }
 
 /* Responsive Design */
@@ -117,11 +89,5 @@
 @media (max-width: 480px) {
   .radius-options {
     grid-template-columns: 1fr;
-  }
-  
-  .radius-info {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 }

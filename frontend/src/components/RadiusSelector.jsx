@@ -32,15 +32,6 @@ const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
           </label>
         ))}
       </div>
-      
-      <div className="radius-info">
-        <div className="current-radius">
-          <span className="info-label">Current Selection:</span>
-          <span className="info-value">
-            {radiusOptions.find(opt => opt.value === selectedRadius)?.label || 'Select a radius'}
-          </span>
-        </div>
-      </div>
     </div>
   );
 };
