@@ -20,6 +20,7 @@ L.Icon.Default.mergeOptions({
 const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
   const [mapCenter, setMapCenter] = useState([37.7749, -122.4194]);
   const [mapZoom, setMapZoom] = useState(13);
+  const [mapKey, setMapKey] = useState(Date.now()); // Key to force map remount
 
   useEffect(() => {
     console.log('MapVisualization props:', { locationData, restrictions, radius });
@@ -162,7 +163,7 @@ const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
             <GeoJSON
               data={restrictions.searchArea}
               style={getSearchAreaStyle}
-              key={`search-area-${Date.now()}`}
+              key={`search-area-${restrictions.searchArea.features.length}-${Date.now()}`}
             >
               <Popup>
                   <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '12px' }}>
@@ -179,7 +180,7 @@ const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
             <GeoJSON
               data={restrictions.airspaceRestrictions}
               style={getAirspaceStyle}
-              key={`airspace-layer`}
+              key={`airspace-layer-${restrictions.airspaceRestrictions.features.length}-${Date.now()}`}
             >
               {restrictions.airspaceRestrictions.features.map((feature, index) => (
                 <Popup key={`airspace-popup-${index}`}>
@@ -195,7 +196,7 @@ const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
             <GeoJSON
               data={restrictions.allowedAreas}
               style={getAllowedStyle}
-              key={`allowed`}
+              key={`allowed-${restrictions.allowedAreas.features.length}-${Date.now()}`}
             >
               {restrictions.allowedAreas.features.map((feature, index) => (
                 <Popup key={`allowed-popup-${index}`}>

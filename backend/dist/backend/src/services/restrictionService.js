@@ -35,336 +35,248 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RestrictionService = void 0;
 const turf = __importStar(require("@turf/turf"));
+const types_1 = require("../types");
 const spatial_1 = require("../utils/spatial");
 const faaProxyService_1 = require("./faaProxyService");
-/**
- * Service for handling drone flight restriction data
- *
- * This service integrates with real FAA ArcGIS REST services to provide
- * accurate airspace restrictions for drone operations. It also includes
- * mock local restrictions for demonstration purposes.
- *
- * The service follows a clean separation of concerns:
- * - Input validation and sanitization
- * - Spatial analysis using Turf.js
- * - Real FAA API integration for airspace restrictions
- * - Mock local restrictions for city/state/private areas
- * - Response formatting for frontend consumption
- */
 class RestrictionService {
     constructor() {
         this.faaProxyService = new faaProxyService_1.FAAProxyService();
     }
-    /**
-     * Main method to get restrictions for a given location and radius
-     * @param input Location and radius parameters
-     * @returns Promise resolving to restrictions response
-     */
     async getRestrictions(input) {
-        try {
-            // 1. Validate input parameters
-            const validatedInput = (0, spatial_1.validateInput)(input);
-            const radius = validatedInput.radius;
-            const { lat, lng } = validatedInput;
-            // 2. Generate search area buffer
-            const searchArea = (0, spatial_1.generateSearchArea)(lat, lng, radius);
-            // 3. Generate restriction data (now async for FAA API integration)
-            const airspaceRestrictions = await this.generateAirspaceRestrictions(lat, lng, radius);
-            // const localRestrictions = this.generateLocalRestrictions(lat, lng, radius);
-            // 4. Calculate allowed areas (complement of restrictions)
-            const allowedAreas = this.calculateAllowedAreas(searchArea, [...airspaceRestrictions.features]);
-            return {
-                searchArea,
-                airspaceRestrictions,
-                localRestrictions: { type: 'FeatureCollection', features: [] },
-                allowedAreas
-            };
-        }
-        catch (error) {
-            throw new Error(`Failed to get restrictions: ${error}`);
-        }
-    }
-    /**
-     * Generates FAA airspace restrictions using real FAA API
-     * @param lat Center latitude
-     * @param lng Center longitude
-     * @param radiusFeet Search radius in feet
-     * @returns GeoJSON FeatureCollection of airspace restrictions
-     */
-    async generateAirspaceRestrictions(lat, lng, radiusFeet) {
-        try {
-            // Use real FAA API via proxy service
-            console.log('Using real FAA API for airspace restrictions');
-            const faaRestrictions = await this.faaProxyService.getFAARestrictions(lat, lng, radiusFeet);
-            // Combine restrictions that belong to the same airport/facility
-            return this.combineSameAirportRestrictions(faaRestrictions);
-        }
-        catch (error) {
-            console.error('FAA API failed:', error);
-            // Return empty feature collection if FAA API fails
-            return {
-                type: 'FeatureCollection',
-                features: []
-            };
-        }
-    }
-    /**
-     * Combines FAA restrictions that belong to the same airport/facility
-     * @param restrictions FeatureCollection of FAA restrictions
-     * @returns FeatureCollection with combined restrictions
-     */
-    combineSameAirportRestrictions(restrictions) {
-        if (!restrictions.features || restrictions.features.length === 0) {
-            return restrictions;
-        }
-        // Group restrictions by facility (airport)
-        const restrictionsByFacility = {};
-        for (const restriction of restrictions.features) {
-            const facility = restriction.properties.facility;
-            if (!facility)
-                continue;
-            if (!restrictionsByFacility[facility]) {
-                restrictionsByFacility[facility] = [];
-            }
-            restrictionsByFacility[facility].push(restriction);
-        }
-        // Combine restrictions for each facility
-        const combinedFeatures = [];
-        for (const [facility, facilityRestrictions] of Object.entries(restrictionsByFacility)) {
-            if (facilityRestrictions.length === 1) {
-                // Only one restriction for this facility, no need to combine
-                combinedFeatures.push(facilityRestrictions[0]);
-            }
-            else {
-                // Multiple restrictions for the same facility, combine them
-                const combinedRestriction = this.combineRestrictionsForFacility(facilityRestrictions, facility);
-                combinedFeatures.push(combinedRestriction);
-            }
-        }
+        const validatedInput = (0, spatial_1.validateInput)(input);
+        const { lat, lng, radius } = validatedInput;
+        const searchArea = (0, spatial_1.generateSearchArea)(lat, lng, radius);
+        // 1️⃣ Generate FAA airspace restrictions
+        const airspaceRestrictions = await this.generateAirspaceRestrictions(lat, lng, radius);
+        // 2️⃣ Calculate allowed areas
+        const allowedAreas = this.calculateAllowedAreas(searchArea, airspaceRestrictions.features);
         return {
-            type: 'FeatureCollection',
-            features: combinedFeatures
+            searchArea,
+            airspaceRestrictions,
+            localRestrictions: { type: 'FeatureCollection', features: [] },
+            allowedAreas
         };
     }
     /**
-     * Combines multiple restrictions for the same facility into one
-     * @param restrictions Array of restrictions for the same facility
-     * @param facilityName Name of the facility/airport
-     * @returns Combined restriction feature
+     * Fetch FAA restrictions and merge grids by facility
      */
-    combineRestrictionsForFacility(restrictions, facilityName) {
-        // Use Turf.js to combine the geometries
+    async generateAirspaceRestrictions(lat, lng, radius) {
         try {
-            // Create a feature collection for Turf.js union operation
-            const featureCollection = {
-                type: 'FeatureCollection',
-                features: restrictions
-            };
-            // Use the first restriction as base and union others with it
-            let combinedGeometry = restrictions[0].geometry;
-            for (let i = 1; i < restrictions.length; i++) {
-                try {
-                    // Union the geometries to create a single combined polygon
-                    const unionResult = turf.union(combinedGeometry, restrictions[i].geometry);
-                    if (unionResult) {
-                        combinedGeometry = unionResult;
-                    }
-                }
-                catch (error) {
-                    console.warn(`Failed to union geometries for facility ${facilityName}:`, error);
-                    // If union fails, just keep the current combined geometry
-                }
-            }
-            // Create the combined restriction feature
-            const combinedRestriction = {
-                type: 'Feature',
-                geometry: combinedGeometry,
-                properties: {
-                    ...restrictions[0].properties,
-                    // Update description to indicate this is a combined restriction
-                    description: `FAA UAS Facility Map - Combined restrictions for ${facilityName} - Max AGL: ${Math.max(...restrictions.map(r => r.properties.maxAGL || 0))}ft`,
-                    // Use the highest maxAGL from all combined restrictions
-                    maxAGL: Math.max(...restrictions.map(r => r.properties.maxAGL || 0)),
-                    // Update the ID to indicate it's combined
-                    id: `faa-combined-${facilityName.replace(/\s+/g, '-').toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`,
-                    // Add information about how many restrictions were combined
-                    combinedFrom: restrictions.length,
-                    originalGridIds: restrictions.map(r => r.properties.gridId).filter(Boolean)
-                }
-            };
-            return combinedRestriction;
+            const raw = await this.faaProxyService.getFAARestrictions(lat, lng, radius);
+            // Merge FAA grids that belong to the same airport
+            return this.mergeFAAFeaturesByFacility(raw.features);
         }
-        catch (error) {
-            console.error(`Failed to combine restrictions for facility ${facilityName}:`, error);
-            // If combining fails, return the first restriction as fallback
-            return restrictions[0];
+        catch (err) {
+            console.error('FAA API failed:', err);
+            return { type: 'FeatureCollection', features: [] };
         }
     }
     /**
-     * Generates mock local/city restrictions using imperial units
-     * In production, this would call city GIS open data APIs
-     * @param lat Center latitude
-     * @param lng Center longitude
-     * @param radius Search radius
-     * @returns GeoJSON FeatureCollection of local restrictions
+     * Merge multiple FAA restriction grids that belong to the same airport
+     * into a single polygon or multipolygon per facility
      */
-    // private generateLocalRestrictions(lat: number, lng: number, radiusFeet: number): any {
-    //   const count = Math.floor(Math.random() * 4) + 1; // 1-4 restrictions
-    //   const features: any[] = [];
-    //   for (let i = 0; i < count; i++) {
-    //     // Create random local restriction polygon (using feet)
-    //     const restriction = createRandomPolygon(lng, lat, radiusFeet * 0.6, 5);
-    //     // Add metadata properties conforming to RestrictionLayer interface
-    //     const category = this.getRandomLocalCategory();
-    //     const restrictionType = i % 2 === 0 ? RestrictionType.NO_FLY : RestrictionType.AUTH_REQUIRED;
-    //     // Local restrictions typically have lower altitude limits (in feet)
-    //     const maxAltitudes = {
-    //       'Park': 400,
-    //       'Stadium': 3000,
-    //       'Prison': 2000,
-    //       'Power Plant': 1000,
-    //       'Hospital': 500,
-    //       'School': 400
-    //     };
-    //     restriction.properties = {
-    //       id: `local-${Date.now()}-${i}`,
-    //       geometry: restriction.geometry,
-    //       category: category === 'Park' ? RestrictionCategory.CITY :
-    //                category === 'Stadium' ? RestrictionCategory.CITY :
-    //                category === 'Prison' ? RestrictionCategory.STATE :
-    //                category === 'Power Plant' ? RestrictionCategory.PRIVATE :
-    //                category === 'Hospital' ? RestrictionCategory.CITY :
-    //                RestrictionCategory.CITY,
-    //       type: restrictionType,
-    //       authority: category === 'Park' ? 'City Parks Department' :
-    //                category === 'Stadium' ? 'City Events Authority' :
-    //                category === 'Prison' ? 'State Corrections Department' :
-    //                category === 'Power Plant' ? 'Private Energy Corporation' :
-    //                category === 'Hospital' ? 'City Health Department' :
-    //                'Local Government',
-    //       description: `${category} - Local government flight restriction`,
-    //       sourceUrl: 'https://www.citygis.gov/restrictions',
-    //       confidenceLevel: ConfidenceLevel.MEDIUM,
-    //       jurisdiction: {
-    //         country: 'United States',
-    //         state: 'California',
-    //         city: 'San Francisco'
-    //       },
-    //       enforcement: '24/7',
-    //       penalties: 'Fines and legal action',
-    //       notes: `Local government restriction at ${category} - check with city authorities before flying`,
-    //       metadata: {
-    //         dataSource: 'City GIS Open Data',
-    //         lastVerified: new Date().toISOString()
-    //       },
-    //       // Local restriction properties using imperial units (feet)
-    //       maxAGL: maxAltitudes[category as keyof typeof maxAltitudes],
-    //       radiusFeet: Math.round(radiusFeet),
-    //       altitudeUnit: 'feet'
-    //     };
-    //     features.push(restriction);
-    //   }
-    //   return {
-    //     type: 'FeatureCollection',
-    //     features
-    //   };
-    // }
-    /**
-     * Calculates allowed areas by subtracting restrictions from search area
-     * @param searchArea The search area buffer
-     * @param restrictions Array of restriction features
-     * @returns GeoJSON FeatureCollection of allowed areas
-     */
-    calculateAllowedAreas(searchArea, restrictions) {
-        console.log('calculateAllowedAreas called with:', {
-            searchAreaFeatures: searchArea.features.length,
-            restrictionsCount: restrictions.length,
-            restrictionsTypes: restrictions.map(r => r.type),
-            restrictionsProperties: restrictions.map(r => r.properties?.name || 'unnamed')
+    mergeFAAFeaturesByFacility(features) {
+        const grouped = {};
+        // Group by facility or fallback to gridId
+        features.forEach(f => {
+            const key = f.properties.facility || f.properties.gridId || 'unknown';
+            if (!grouped[key])
+                grouped[key] = [];
+            grouped[key].push(f);
         });
-        let allowedArea = searchArea.features[0];
-        // Subtract each restriction from the allowed area
-        for (const restriction of restrictions) {
+        const mergedFeatures = [];
+        Object.entries(grouped).forEach(([facility, group]) => {
             try {
-                // Turf.js difference operation - subtract restriction from allowed area
-                // Create a FeatureCollection with both features for turf.difference
-                console.log('Calculating difference between allowedArea and restriction', {
-                    allowedAreaType: allowedArea.type,
-                    restrictionType: restriction.type,
-                    allowedAreaCoords: allowedArea.geometry?.coordinates?.length,
-                    restrictionCoords: restriction.geometry?.coordinates?.length
-                });
-                const difference = turf.difference({
+                // Skip if only one feature (no need to merge)
+                if (group.length <= 1) {
+                    mergedFeatures.push(...group);
+                    return;
+                }
+                // Convert RestrictionFeatures to simple Features for turf processing
+                // Filter out GeometryCollections as they're not supported by turf.combine
+                const simpleFeatures = group
+                    .map(f => ({
+                    type: 'Feature',
+                    properties: f.properties,
+                    geometry: f.geometry
+                }))
+                    .filter(f => f.geometry.type !== 'GeometryCollection');
+                // Skip if no valid features after filtering
+                if (simpleFeatures.length === 0) {
+                    console.warn(`No valid features to merge for facility ${facility}`);
+                    return;
+                }
+                // Skip if only one feature after filtering
+                if (simpleFeatures.length === 1) {
+                    const singleFeature = simpleFeatures[0];
+                    const props = {
+                        ...group[0].properties, // keep original metadata
+                        facility,
+                        name: group[0].properties.name || 'Unnamed Airspace',
+                        category: group[0].properties.category || 'Airspace',
+                        type: group[0].properties.type || 'No-Fly',
+                        source: group[0].properties.source || 'FAA',
+                        notes: group[0].properties.notes || ''
+                    };
+                    const restrictionFeature = {
+                        type: 'Feature',
+                        properties: props,
+                        geometry: singleFeature.geometry
+                    };
+                    mergedFeatures.push(restrictionFeature);
+                    return;
+                }
+                // Create a FeatureCollection for turf processing
+                const featureCollection = {
                     type: 'FeatureCollection',
-                    features: [allowedArea, restriction]
-                });
-                console.log('Difference result:', {
-                    result: difference,
-                    resultType: difference?.type,
-                    resultIsNull: difference === null
-                });
-                if (difference) {
-                    allowedArea = difference;
-                    console.log('Updated allowedArea:', {
-                        type: allowedArea.type,
-                        coordinatesLength: allowedArea.geometry?.coordinates?.length
-                    });
+                    features: simpleFeatures
+                };
+                // Combine all polygons into one FeatureCollection
+                const combined = turf.combine(featureCollection);
+                if (!combined || combined.features.length === 0) {
+                    console.warn(`Failed to combine features for facility ${facility}`);
+                    mergedFeatures.push(...group);
+                    return;
+                }
+                // Since turf.combine creates MultiPolygons and turf.dissolve expects Polygons,
+                // we'll use the combined result directly instead of trying to dissolve
+                // This gives us merged polygons that maintain their individual shapes
+                // Create a single merged feature for this facility
+                // Combine all geometries into a single feature
+                if (combined.features.length === 1) {
+                    // Single combined feature - use it directly
+                    const props = {
+                        ...group[0].properties, // keep original metadata
+                        facility,
+                        name: group[0].properties.name || 'Unnamed Airspace',
+                        category: group[0].properties.category || 'Airspace',
+                        type: group[0].properties.type || 'No-Fly',
+                        source: group[0].properties.source || 'FAA',
+                        notes: group[0].properties.notes || ''
+                    };
+                    const restrictionFeature = {
+                        type: 'Feature',
+                        properties: props,
+                        geometry: combined.features[0].geometry // Cast geometry to match GeoJSONGeometry type
+                    };
+                    mergedFeatures.push(restrictionFeature);
                 }
                 else {
-                    console.log('Difference returned null - restriction completely covers allowed area');
+                    // Multiple combined features - merge them into a single MultiPolygon feature
+                    const props = {
+                        ...group[0].properties, // keep original metadata
+                        facility,
+                        name: group[0].properties.name || 'Unnamed Airspace',
+                        category: group[0].properties.category || 'Airspace',
+                        type: group[0].properties.type || 'No-Fly',
+                        source: group[0].properties.source || 'FAA',
+                        notes: group[0].properties.notes || ''
+                    };
+                    // Create a MultiPolygon geometry from all combined features
+                    const multiPolygonGeometry = {
+                        type: 'MultiPolygon',
+                        coordinates: combined.features.map(f => {
+                            const geom = f.geometry;
+                            if (geom.type === 'Polygon') {
+                                return geom.coordinates;
+                            }
+                            else if (geom.type === 'MultiPolygon') {
+                                return geom.coordinates.flat(); // Flatten nested MultiPolygon coordinates
+                            }
+                            else {
+                                // For other geometry types, try to convert to polygon coordinates
+                                return [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]]; // Fallback
+                            }
+                        })
+                    };
+                    const restrictionFeature = {
+                        type: 'Feature',
+                        properties: props,
+                        geometry: multiPolygonGeometry
+                    };
+                    mergedFeatures.push(restrictionFeature);
                 }
             }
-            catch (error) {
-                // If difference operation fails, continue with current allowed area
-                console.warn('Failed to calculate difference for restriction:', error);
+            catch (err) {
+                console.warn(`Failed to merge FAA grids for facility ${facility}:`, err);
+                mergedFeatures.push(...group); // fallback
+            }
+        });
+        return { type: 'FeatureCollection', features: mergedFeatures };
+    }
+    calculateAllowedAreas(searchArea, restrictions) {
+        // Start with the original search area
+        let allowedArea = searchArea.features[0];
+        // If there are no restrictions, the entire search area is allowed
+        if (restrictions.length === 0) {
+            const resultFeature = {
+                type: 'Feature',
+                properties: {
+                    id: 'allowed-area',
+                    geometry: allowedArea.geometry,
+                    category: types_1.RestrictionCategory.FAA,
+                    type: types_1.RestrictionType.NO_FLY,
+                    authority: 'System',
+                    description: 'Entire search area is allowed (no restrictions)',
+                    sourceUrl: '',
+                    confidenceLevel: types_1.ConfidenceLevel.HIGH,
+                    jurisdiction: { country: 'US' }
+                },
+                geometry: allowedArea.geometry
+            };
+            return { type: 'FeatureCollection', features: [resultFeature] };
+        }
+        // Process each restriction to subtract from the allowed area
+        for (const restriction of restrictions) {
+            try {
+                // Create a FeatureCollection with the search area and restriction
+                const searchFeature = {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: allowedArea.geometry
+                };
+                const restrictionFeature = {
+                    type: 'Feature',
+                    properties: {},
+                    geometry: restriction.geometry
+                };
+                // Use turf.difference with FeatureCollection as expected by this version
+                const featureCollection = {
+                    type: 'FeatureCollection',
+                    features: [searchFeature, restrictionFeature]
+                };
+                // Calculate the difference: searchArea - restriction
+                const diff = turf.difference(featureCollection);
+                if (diff) {
+                    // Update the allowed area with the new geometry
+                    allowedArea = {
+                        ...allowedArea,
+                        geometry: diff.geometry
+                    };
+                }
+            }
+            catch (err) {
+                console.warn('Failed to subtract restriction from allowed area:', err);
+                // Continue with the current allowed area if there's an error
             }
         }
-        // If the entire area is restricted, return empty features
-        if (!allowedArea) {
-            return {
-                type: 'FeatureCollection',
-                features: []
-            };
-        }
-        // If allowed area is still the full search area, wrap it in a FeatureCollection
-        if (allowedArea.type === 'Feature') {
-            return {
-                type: 'FeatureCollection',
-                features: [allowedArea]
-            };
-        }
-        // Handle case where difference returns a MultiPolygon
-        return {
-            type: 'FeatureCollection',
-            features: [allowedArea]
+        // Create the final result feature
+        const resultFeature = {
+            type: 'Feature',
+            properties: {
+                id: 'allowed-area',
+                geometry: allowedArea.geometry,
+                category: types_1.RestrictionCategory.FAA,
+                type: types_1.RestrictionType.NO_FLY,
+                authority: 'System',
+                description: 'Allowed flight area after applying all restrictions',
+                sourceUrl: '',
+                confidenceLevel: types_1.ConfidenceLevel.HIGH,
+                jurisdiction: { country: 'US' }
+            },
+            geometry: allowedArea.geometry
         };
-    }
-    /**
-     * Helper method to get random airspace category
-     */
-    getRandomAirspaceCategory() {
-        const categories = ['Class B', 'Class C', 'Class D', 'Restricted', 'Prohibited', 'MOA'];
-        return categories[Math.floor(Math.random() * categories.length)];
-    }
-    /**
-     * Helper method to generate random airport facility code
-     * @returns Random 3-4 letter airport code (e.g., "DFW", "LAX")
-     */
-    generateRandomAirportCode() {
-        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        let code = '';
-        const length = Math.random() > 0.5 ? 3 : 4; // 3 or 4 letters
-        for (let i = 0; i < length; i++) {
-            code += letters.charAt(Math.floor(Math.random() * letters.length));
-        }
-        return code;
-    }
-    /**
-     * Helper method to get random local restriction category
-     */
-    getRandomLocalCategory() {
-        const categories = ['Park', 'Stadium', 'Prison', 'Power Plant', 'Hospital', 'School'];
-        return categories[Math.floor(Math.random() * categories.length)];
+        return { type: 'FeatureCollection', features: [resultFeature] };
     }
 }
 exports.RestrictionService = RestrictionService;
