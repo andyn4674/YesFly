@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { createRoutes } from './routes';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 /**
  * Main Express server setup and configuration
@@ -40,7 +44,7 @@ app.use(helmet({
 
 // CORS configuration - Allow requests from frontend
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:5174', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://localhost:5173'],
+  origin: ['http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

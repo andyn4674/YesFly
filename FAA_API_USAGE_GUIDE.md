@@ -138,7 +138,7 @@ async function getFAARestrictions(lat: number, lng: number, radius: number) {
       params: {
         f: 'json',
         geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
+        geometryType: 'esriGeometryEnvelope',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
         outFields: '*',

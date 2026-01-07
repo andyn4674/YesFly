@@ -53,7 +53,7 @@ class RestrictionController {
                     example: {
                         lat: 37.7749,
                         lng: -122.4194,
-                        radius: 1000
+                        radius: 1
                     }
                 });
                 return;
@@ -127,7 +127,7 @@ class RestrictionController {
                     requestBody: {
                         lat: 'Latitude (number, -90 to 90)',
                         lng: 'Longitude (number, -180 to 180)',
-                        radius: 'Search radius in meters (number, 1 to 100000)'
+                        radius: 'Search radius (number, 0.01893939 to 5)'
                     },
                     response: {
                         searchArea: 'GeoJSON FeatureCollection of the search buffer',
@@ -148,7 +148,6 @@ class RestrictionController {
             },
             notes: [
                 'All coordinates use WGS84 (EPSG:4326) coordinate system',
-                'Radius is limited to 100km maximum for performance reasons',
                 'Response includes mock data in MVP - will integrate with real GIS APIs in production',
                 'All areas are returned as GeoJSON polygons with metadata properties'
             ]

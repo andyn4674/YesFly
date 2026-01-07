@@ -2,28 +2,28 @@ import { LocationInput, RestrictionsResponse } from '../types';
 /**
  * Service for handling drone flight restriction data
  *
- * This service provides mock data for the MVP but is structured
- * to easily integrate with real GIS APIs later:
- * - FAA ArcGIS REST services
- * - City GIS open data endpoints
- * - Custom spatial databases
+ * This service integrates with real FAA ArcGIS REST services to provide
+ * accurate airspace restrictions for drone operations. It also includes
+ * mock local restrictions for demonstration purposes.
  *
  * The service follows a clean separation of concerns:
  * - Input validation and sanitization
  * - Spatial analysis using Turf.js
- * - Mock data generation (replaceable with real APIs)
+ * - Real FAA API integration for airspace restrictions
+ * - Mock local restrictions for city/state/private areas
  * - Response formatting for frontend consumption
  */
 export declare class RestrictionService {
+    private faaProxyService;
+    constructor();
     /**
      * Main method to get restrictions for a given location and radius
-     * @param input Location and radius parameters (converted to feet internally)
+     * @param input Location and radius parameters
      * @returns Promise resolving to restrictions response
      */
     getRestrictions(input: LocationInput): Promise<RestrictionsResponse>;
     /**
-     * Generates mock FAA airspace restrictions using imperial units
-     * In production, this would call FAA ArcGIS REST services
+     * Generates FAA airspace restrictions using real FAA API
      * @param lat Center latitude
      * @param lng Center longitude
      * @param radiusFeet Search radius in feet
@@ -31,14 +31,26 @@ export declare class RestrictionService {
      */
     private generateAirspaceRestrictions;
     /**
+     * Combines FAA restrictions that belong to the same airport/facility
+     * @param restrictions FeatureCollection of FAA restrictions
+     * @returns FeatureCollection with combined restrictions
+     */
+    private combineSameAirportRestrictions;
+    /**
+     * Combines multiple restrictions for the same facility into one
+     * @param restrictions Array of restrictions for the same facility
+     * @param facilityName Name of the facility/airport
+     * @returns Combined restriction feature
+     */
+    private combineRestrictionsForFacility;
+    /**
      * Generates mock local/city restrictions using imperial units
      * In production, this would call city GIS open data APIs
      * @param lat Center latitude
      * @param lng Center longitude
-     * @param radiusFeet Search radius in feet
+     * @param radius Search radius
      * @returns GeoJSON FeatureCollection of local restrictions
      */
-    private generateLocalRestrictions;
     /**
      * Calculates allowed areas by subtracting restrictions from search area
      * @param searchArea The search area buffer

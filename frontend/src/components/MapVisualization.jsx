@@ -179,7 +179,7 @@ const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
             <GeoJSON
               data={restrictions.airspaceRestrictions}
               style={getAirspaceStyle}
-              key={`airspace-${Date.now()}`}
+              key={`airspace-layer`}
             >
               {restrictions.airspaceRestrictions.features.map((feature, index) => (
                 <Popup key={`airspace-popup-${index}`}>
@@ -189,27 +189,13 @@ const MapVisualization = ({ locationData, restrictions, radius = 1000 }) => {
             </GeoJSON>
           )}
 
-          {/* Local Restrictions */}
-          {restrictions.localRestrictions?.features?.length > 0 && (
-            <GeoJSON
-              data={restrictions.localRestrictions}
-              style={getLocalStyle}
-              key={`local-${Date.now()}`}
-            >
-              {restrictions.localRestrictions.features.map((feature, index) => (
-                <Popup key={`local-popup-${index}`}>
-                  <div dangerouslySetInnerHTML={{ __html: createLocalPopup(feature) }} />
-                </Popup>
-              ))}
-            </GeoJSON>
-          )}
-
+          
           {/* Allowed Areas */}
           {restrictions.allowedAreas?.features?.length > 0 && (
             <GeoJSON
               data={restrictions.allowedAreas}
               style={getAllowedStyle}
-              key={`allowed-${Date.now()}`}
+              key={`allowed`}
             >
               {restrictions.allowedAreas.features.map((feature, index) => (
                 <Popup key={`allowed-popup-${index}`}>

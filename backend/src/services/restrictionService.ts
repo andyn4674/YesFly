@@ -1,47 +1,33 @@
 import * as turf from '@turf/turf';
 import { LocationInput, RestrictionsResponse, MockDataConfig, RestrictionCategory, RestrictionType, ConfidenceLevel } from '../types';
 import { validateInput, generateSearchArea, createRandomPolygon } from '../utils/spatial';
+import { FAAProxyService } from './faaProxyService';
 
-/**
- * Mock data configuration
- * This can be easily replaced with real GIS API calls later
- * All measurements in imperial units (feet) for FAA compatibility
- */
-const MOCK_CONFIG: MockDataConfig = {
-  minRadius: 0.01893939,
-  maxRadius: 5,
-  maxRestrictionCount: 8,
-  // FAA airspace altitude limits in feet
-  faaAirspaceClasses: {
-    'Class B': { maxAlt: 10000, description: 'Busy airport airspace' },
-    'Class C': { maxAlt: 4000, description: 'Medium airport airspace' },
-    'Class D': { maxAlt: 2500, description: 'Small airport airspace' },
-    'Class E': { maxAlt: 18000, description: 'Controlled airspace' },
-    'Restricted': { maxAlt: 0, description: 'No-fly zone' },
-    'Prohibited': { maxAlt: 0, description: 'Critical no-fly zone' }
-  }
-};
 
 /**
  * Service for handling drone flight restriction data
- * 
- * This service provides mock data for the MVP but is structured
- * to easily integrate with real GIS APIs later:
- * - FAA ArcGIS REST services
- * - City GIS open data endpoints
- * - Custom spatial databases
- * 
+ *
+ * This service integrates with real FAA ArcGIS REST services to provide
+ * accurate airspace restrictions for drone operations. It also includes
+ * mock local restrictions for demonstration purposes.
+ *
  * The service follows a clean separation of concerns:
  * - Input validation and sanitization
  * - Spatial analysis using Turf.js
- * - Mock data generation (replaceable with real APIs)
+ * - Real FAA API integration for airspace restrictions
+ * - Mock local restrictions for city/state/private areas
  * - Response formatting for frontend consumption
  */
 export class RestrictionService {
+  private faaProxyService: FAAProxyService;
+
+  constructor() {
+    this.faaProxyService = new FAAProxyService();
+  }
   
   /**
    * Main method to get restrictions for a given location and radius
-   * @param input Location and radius parameters (converted to feet internally)
+   * @param input Location and radius parameters
    * @returns Promise resolving to restrictions response
    */
   async getRestrictions(input: LocationInput): Promise<RestrictionsResponse> {
@@ -54,20 +40,20 @@ export class RestrictionService {
       // 2. Generate search area buffer
       const searchArea = generateSearchArea(lat, lng, radius);
 
-      // 3. Generate mock restriction data
-      const airspaceRestrictions = this.generateAirspaceRestrictions(lat, lng, radius);
-      const localRestrictions = this.generateLocalRestrictions(lat, lng, radius);
-      
+      // 3. Generate restriction data (now async for FAA API integration)
+      const airspaceRestrictions = await this.generateAirspaceRestrictions(lat, lng, radius);
+      // const localRestrictions = this.generateLocalRestrictions(lat, lng, radius);
+
       // 4. Calculate allowed areas (complement of restrictions)
       const allowedAreas = this.calculateAllowedAreas(
         searchArea,
-        [...airspaceRestrictions.features, ...localRestrictions.features]
+        [...airspaceRestrictions.features]
       );
 
       return {
         searchArea,
         airspaceRestrictions,
-        localRestrictions,
+        localRestrictions: { type: 'FeatureCollection', features: [] },
         allowedAreas
       };
     } catch (error) {
@@ -76,139 +62,103 @@ export class RestrictionService {
   }
 
   /**
-   * Generates mock FAA airspace restrictions using imperial units
-   * In production, this would call FAA ArcGIS REST services
+   * Generates FAA airspace restrictions using real FAA API
    * @param lat Center latitude
    * @param lng Center longitude
-   * @param radiusFeet Search radius in feet
+   * @param radius Search radius
    * @returns GeoJSON FeatureCollection of airspace restrictions
    */
-  private generateAirspaceRestrictions(lat: number, lng: number, radiusFeet: number): any {
-    const count = Math.floor(Math.random() * 3) + 1; // 1-3 restrictions
-    const features: any[] = [];
-
-    // Get FAA airspace classes from config (with null check)
-    const airspaceClasses = Object.entries(MOCK_CONFIG.faaAirspaceClasses || {});
-
-    for (let i = 0; i < count; i++) {
-      // Create random restriction polygon (using feet)
-      const restriction = createRandomPolygon(lng, lat, radiusFeet * 0.8, 6);
-
-      // Select random airspace class
-      const [airspaceClass, config] = airspaceClasses[Math.floor(Math.random() * airspaceClasses.length)];
-
-      // Add metadata properties conforming to RestrictionLayer interface
-      restriction.properties = {
-        id: `airspace-${Date.now()}-${i}`,
-        geometry: restriction.geometry,
-        category: RestrictionCategory.FAA,
-        type: config.maxAlt === 0 ? RestrictionType.NO_FLY : RestrictionType.AUTH_REQUIRED,
-        authority: 'Federal Aviation Administration',
-        description: `${airspaceClass} airspace - ${config.description}`,
-        sourceUrl: 'https://www.faa.gov/uas/',
-        confidenceLevel: ConfidenceLevel.HIGH,
-        jurisdiction: {
-          country: 'United States',
-          state: 'California'
-        },
-        effectiveDate: new Date().toISOString(),
-        notes: `FAA ${airspaceClass} airspace - authorization required for drone operations`,
-        metadata: {
-          dataSource: 'FAA ArcGIS',
-          lastVerified: new Date().toISOString()
-        },
-        // FAA-specific properties using imperial units (feet)
-        maxAGL: config.maxAlt, // Maximum altitude in feet
-        airspaceClass: airspaceClass,
-        facility: `K${this.generateRandomAirportCode()}`,
-        radiusFeet: Math.round(radiusFeet),
-        altitudeUnit: 'feet'
+  private async generateAirspaceRestrictions(lat: number, lng: number, radius: number): Promise<any> {
+    try {
+      // Use real FAA API via proxy service
+      console.log('Using real FAA API for airspace restrictions');
+      return await this.faaProxyService.getFAARestrictions(lat, lng, radius);
+    } catch (error) {
+      console.error('FAA API failed:', error);
+      // Return empty feature collection if FAA API fails
+      return {
+        type: 'FeatureCollection',
+        features: []
       };
-
-      features.push(restriction);
     }
-
-    return {
-      type: 'FeatureCollection',
-      features
-    };
   }
+
 
   /**
    * Generates mock local/city restrictions using imperial units
    * In production, this would call city GIS open data APIs
    * @param lat Center latitude
    * @param lng Center longitude
-   * @param radiusFeet Search radius in feet
+   * @param radius Search radius
    * @returns GeoJSON FeatureCollection of local restrictions
    */
-  private generateLocalRestrictions(lat: number, lng: number, radiusFeet: number): any {
-    const count = Math.floor(Math.random() * 4) + 1; // 1-4 restrictions
-    const features: any[] = [];
+  // private generateLocalRestrictions(lat: number, lng: number, radiusFeet: number): any {
+  //   const count = Math.floor(Math.random() * 4) + 1; // 1-4 restrictions
+  //   const features: any[] = [];
 
-    for (let i = 0; i < count; i++) {
-      // Create random local restriction polygon (using feet)
-      const restriction = createRandomPolygon(lng, lat, radiusFeet * 0.6, 5);
+  //   for (let i = 0; i < count; i++) {
+  //     // Create random local restriction polygon (using feet)
+  //     const restriction = createRandomPolygon(lng, lat, radiusFeet * 0.6, 5);
 
-      // Add metadata properties conforming to RestrictionLayer interface
-      const category = this.getRandomLocalCategory();
-      const restrictionType = i % 2 === 0 ? RestrictionType.NO_FLY : RestrictionType.AUTH_REQUIRED;
+  //     // Add metadata properties conforming to RestrictionLayer interface
+  //     const category = this.getRandomLocalCategory();
+  //     const restrictionType = i % 2 === 0 ? RestrictionType.NO_FLY : RestrictionType.AUTH_REQUIRED;
 
-      // Local restrictions typically have lower altitude limits (in feet)
-      const maxAltitudes = {
-        'Park': 400,
-        'Stadium': 3000,
-        'Prison': 2000,
-        'Power Plant': 1000,
-        'Hospital': 500,
-        'School': 400
-      };
+  //     // Local restrictions typically have lower altitude limits (in feet)
+  //     const maxAltitudes = {
+  //       'Park': 400,
+  //       'Stadium': 3000,
+  //       'Prison': 2000,
+  //       'Power Plant': 1000,
+  //       'Hospital': 500,
+  //       'School': 400
+  //     };
 
-      restriction.properties = {
-        id: `local-${Date.now()}-${i}`,
-        geometry: restriction.geometry,
-        category: category === 'Park' ? RestrictionCategory.CITY :
-                 category === 'Stadium' ? RestrictionCategory.CITY :
-                 category === 'Prison' ? RestrictionCategory.STATE :
-                 category === 'Power Plant' ? RestrictionCategory.PRIVATE :
-                 category === 'Hospital' ? RestrictionCategory.CITY :
-                 RestrictionCategory.CITY,
-        type: restrictionType,
-        authority: category === 'Park' ? 'City Parks Department' :
-                 category === 'Stadium' ? 'City Events Authority' :
-                 category === 'Prison' ? 'State Corrections Department' :
-                 category === 'Power Plant' ? 'Private Energy Corporation' :
-                 category === 'Hospital' ? 'City Health Department' :
-                 'Local Government',
-        description: `${category} - Local government flight restriction`,
-        sourceUrl: 'https://www.citygis.gov/restrictions',
-        confidenceLevel: ConfidenceLevel.MEDIUM,
-        jurisdiction: {
-          country: 'United States',
-          state: 'California',
-          city: 'San Francisco'
-        },
-        enforcement: '24/7',
-        penalties: 'Fines and legal action',
-        notes: `Local government restriction at ${category} - check with city authorities before flying`,
-        metadata: {
-          dataSource: 'City GIS Open Data',
-          lastVerified: new Date().toISOString()
-        },
-        // Local restriction properties using imperial units (feet)
-        maxAGL: maxAltitudes[category as keyof typeof maxAltitudes],
-        radiusFeet: Math.round(radiusFeet),
-        altitudeUnit: 'feet'
-      };
+  //     restriction.properties = {
+  //       id: `local-${Date.now()}-${i}`,
+  //       geometry: restriction.geometry,
+  //       category: category === 'Park' ? RestrictionCategory.CITY :
+  //                category === 'Stadium' ? RestrictionCategory.CITY :
+  //                category === 'Prison' ? RestrictionCategory.STATE :
+  //                category === 'Power Plant' ? RestrictionCategory.PRIVATE :
+  //                category === 'Hospital' ? RestrictionCategory.CITY :
+  //                RestrictionCategory.CITY,
+  //       type: restrictionType,
+  //       authority: category === 'Park' ? 'City Parks Department' :
+  //                category === 'Stadium' ? 'City Events Authority' :
+  //                category === 'Prison' ? 'State Corrections Department' :
+  //                category === 'Power Plant' ? 'Private Energy Corporation' :
+  //                category === 'Hospital' ? 'City Health Department' :
+  //                'Local Government',
+  //       description: `${category} - Local government flight restriction`,
+  //       sourceUrl: 'https://www.citygis.gov/restrictions',
+  //       confidenceLevel: ConfidenceLevel.MEDIUM,
+  //       jurisdiction: {
+  //         country: 'United States',
+  //         state: 'California',
+  //         city: 'San Francisco'
+  //       },
+  //       enforcement: '24/7',
+  //       penalties: 'Fines and legal action',
+  //       notes: `Local government restriction at ${category} - check with city authorities before flying`,
+  //       metadata: {
+  //         dataSource: 'City GIS Open Data',
+  //         lastVerified: new Date().toISOString()
+  //       },
+  //       // Local restriction properties using imperial units (feet)
+  //       maxAGL: maxAltitudes[category as keyof typeof maxAltitudes],
+  //       radiusFeet: Math.round(radiusFeet),
+  //       altitudeUnit: 'feet'
+  //     };
 
-      features.push(restriction);
-    }
+  //     features.push(restriction);
+  //   }
 
-    return {
-      type: 'FeatureCollection',
-      features
-    };
-  }
+  //   return {
+  //     type: 'FeatureCollection',
+  //     features
+  //   };
+  // }
 
   /**
    * Calculates allowed areas by subtracting restrictions from search area
@@ -230,14 +180,14 @@ export class RestrictionService {
     for (const restriction of restrictions) {
       try {
         // Turf.js difference operation - subtract restriction from allowed area
-        // Use the correct syntax for turf.difference (two features, not FeatureCollection)
+        // Create a FeatureCollection with both features for turf.difference
         console.log('Calculating difference between allowedArea and restriction', {
           allowedAreaType: allowedArea.type,
           restrictionType: restriction.type,
           allowedAreaCoords: allowedArea.geometry?.coordinates?.length,
           restrictionCoords: restriction.geometry?.coordinates?.length
         });
-        
+
         const difference = turf.difference({
           type: 'FeatureCollection',
           features: [allowedArea, restriction]

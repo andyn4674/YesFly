@@ -7,6 +7,9 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const routes_1 = require("./routes");
+const dotenv_1 = __importDefault(require("dotenv"));
+// Load environment variables from .env file
+dotenv_1.default.config();
 /**
  * Main Express server setup and configuration
  *
@@ -41,7 +44,7 @@ app.use((0, helmet_1.default)({
 }));
 // CORS configuration - Allow requests from frontend
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:5174', 'http://localhost:5174', 'http://127.0.0.1:5173', 'http://localhost:5173'],
+    origin: ['http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
