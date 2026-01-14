@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './FlightRestrictions.css';
+import '../styles/components/FlightRestrictions.css';
 // Import shared types for type checking (will be used in TypeScript conversion)
 import { RestrictionCategory, RestrictionType } from '@shared/types/RestrictionLayer';
 

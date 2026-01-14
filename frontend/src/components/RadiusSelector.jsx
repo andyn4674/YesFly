@@ -1,5 +1,5 @@
 import React from 'react';
-import './RadiusSelector.css';
+import '../styles/components/RadiusSelector.css';
 
 const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
   const radiusOptions = [

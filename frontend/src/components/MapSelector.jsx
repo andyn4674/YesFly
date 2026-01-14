@@ -102,7 +102,7 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
   };
 
   return (
-    <div className="map-selector">
+    <div>
       <div className="map-controls">
         <button 
           onClick={getCurrentLocation}
