@@ -1,0 +1,32 @@
+.check-restrictions-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.location-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 450px;
+    min-width: 0;
+    flex: none;
+}
+
+.map-visualization-container {
+    flex: 1;
+    min-width: 0;
+}
+
+.flight-restrictions-container {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 1024px) {
+  .check-restrictions-container {
+    flex-direction: column;
+  }
+}

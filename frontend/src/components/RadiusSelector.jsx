@@ -3,12 +3,12 @@ import '../styles/components/RadiusSelector.css';
 
 const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
   const radiusOptions = [
-    { value: 0.01893939, label: '100 ft', description: 'Small area around you' },
-    { value: 0.25, label: '0.25 mi', description: 'Neighborhood area' },
-    { value: 0.5, label: '0.5 mi', description: 'Local area' },
-    { value: 1, label: '1 mi', description: 'City block area' },
-    { value: 2, label: '2 mi', description: 'Large area' },
-    { value: 5, label: '5 mi', description: 'Regional area' }
+    { value: 0.09469697, label: '500 ft'}, // 0.01893939 for 100 ft
+    { value: 0.25, label: '¼ mi'},
+    { value: 0.5, label: '½ mi'},
+    { value: 1, label: '1 mi'},
+    { value: 2, label: '2 mi'},
+    { value: 5, label: '5 mi'}
   ];
 
   return (
@@ -27,7 +27,6 @@ const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
             />
             <div className="radius-card">
               <div className="radius-value">{option.label}</div>
-              <div className="radius-description">{option.description}</div>
             </div>
           </label>
         ))}

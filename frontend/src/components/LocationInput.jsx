@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import MapSelector from './MapSelector';
+import '../styles/components/LocationInput.css';
 
 const LocationInput = ({ onLocationChange }) => {
   const [location, setLocation] = useState('');
@@ -84,7 +85,7 @@ const LocationInput = ({ onLocationChange }) => {
           onClick={() => setSelectedMethod(selectedMethod === 'geolocation' ? null : 'geolocation')}
           className={`method-btn ${selectedMethod === 'geolocation' ? 'active' : ''}`}
         >
-          📍 Use My Current Location
+          📍 Your Location
         </button>
         
         <button 

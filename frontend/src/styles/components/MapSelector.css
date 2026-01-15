@@ -1,0 +1,113 @@
+.map-selector-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.map-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.current-location-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+  flex: 1;
+  min-width: 200px;
+  background: #4CAF50;
+  color: white;
+}
+
+.current-location-btn:hover {
+  background: #45a049;
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 0;
+}
+
+.map-instruction {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  color: #666;
+  font-size: 0.9rem;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.map-submit {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.submit-location-btn {
+  background: #ff9800;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+  margin-bottom: 1rem;
+}
+
+.submit-location-btn:hover {
+  background: #f57c00;
+}
+
+.submit-location-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Leaflet Map Styles specific to MapSelector */
+.map-selector-container .leaflet-container {
+  height: 400px !important;
+  width: 100% !important;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .map-controls {
+    flex-direction: column;
+  }
+
+  .current-location-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .map-instruction {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-selector-container {
+    padding: 15px;
+  }
+
+  .current-location-btn,
+  .submit-location-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}

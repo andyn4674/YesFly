@@ -3,6 +3,7 @@ import LocationInput from '../components/LocationInput'
 import FlightRestrictions from '../components/FlightRestrictions'
 import MapVisualization from '../components/MapVisualization'
 import RadiusSelector from '../components/RadiusSelector'
+import '../styles/components/CheckRestrictions.css';
 
 function CheckRestrictions () {
     const [locationData, setLocationData] = useState(null)
@@ -109,23 +110,29 @@ function CheckRestrictions () {
     }
 
     return (
-        <>
-            <RadiusSelector 
-            selectedRadius={radius} 
-            onRadiusChange={handleRadiusChange}
-            />
-            <LocationInput onLocationChange={handleLocationChange} />
-            <FlightRestrictions 
-            locationData={locationData} 
-            radius={radius} 
-            onRadiusChange={handleRadiusChange}
-            />
-            <MapVisualization 
-            locationData={locationData} 
-            restrictions={restrictions} 
-            radius={radius}
-            />        
-        </>
+        <div className="check-restrictions-container">
+            <div className="location-input-container">
+                <LocationInput onLocationChange={handleLocationChange} />
+                <RadiusSelector
+                    selectedRadius={radius}
+                    onRadiusChange={handleRadiusChange}
+                />
+            </div>
+            <div className="map-visualization-container">
+                <MapVisualization
+                locationData={locationData}
+                restrictions={restrictions}
+                radius={radius}
+                />
+            </div>
+            <div className="flight-restrictions-container">
+                <FlightRestrictions
+                locationData={locationData}
+                radius={radius}
+                onRadiusChange={handleRadiusChange}
+                />
+            </div>
+        </div>
     )
 }
 

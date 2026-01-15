@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../styles/components/MapSelector.css';
 
 // Import Leaflet images for Vite compatibility
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -102,13 +103,13 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
   };
 
   return (
-    <div>
+    <div className="map-selector-container">
       <div className="map-controls">
-        <button 
+        <button
           onClick={getCurrentLocation}
           className="current-location-btn"
         >
-          Go to Current Location
+          Your Location
         </button>
       </div>
 
@@ -133,9 +134,9 @@ const MapSelector = ({ onLocationChange, initialPosition = [40.7128, -74.0060] }
             </Popup>
           </Marker>
         </MapContainer>
-        
+
         <div className="map-submit">
-          <button 
+          <button
             onClick={handleSubmitLocation}
             className="submit-location-btn"
           >
